@@ -7,6 +7,7 @@
 module Main where
 
 import Main.Options
+import Config
 import Application
 import Application.Types
 
@@ -35,44 +36,25 @@ import Control.Monad.Reader
 main :: IO ()
 main = do
   -- CLI Opts
-  let opts :: ParserInfo App
-      opts = info (helper <*> app)
-        ( fullDesc
-       <> progDesc "Serve application from PORT over HOST"
-       <> header "middleman - a web server" )
+  let opts :: ParserInfo AppOpts
+      opts = info (helper <*> appOpts) $
+          fullDesc
+       <> progDesc "Run the HTTP wallet app over PORT with CONFIG."
+       <> header "moneybit - a simple monero wallet"
 
-  (commandOpts :: App) <- execParser opts
+  commandOpts <- execParser opts
 
-  -- Yaml Opts
-  let yamlConfigPath = fromMaybe
-        "config/config.yaml" $
-        configPath commandOpts
+  let cliOpts :: AppOpts
+      cliOpts = def <> commandOpts
 
-  -- Yaml bug
-  yamlConfigExists   <- doesFileExist yamlConfigPath
-  yamlConfigContents <-
-    if yamlConfigExists
-    then readFile yamlConfigPath
-    else pure ""
-
-  mYamlConfig <-
-    if yamlConfigExists && yamlConfigContents /= ""
-    then Y.decodeFile yamlConfigPath
-    else pure Nothing
-
-  let yamlConfig :: AppOpts
-      yamlConfig = fromMaybe def mYamlConfig
-
-      config :: AppOpts
-      config = def <> yamlConfig <> options commandOpts
-
-  entry (fromJust $ port config) =<< appOptsToEnv config
+  (env,cfg) <- digestAppOpts cliOpts
+  entry (fromJust $ port cliOpts) env cfg
 
 
 
 -- | Entry point, post options parsing
-entry :: Int -> Env -> IO ()
-entry p env =
+entry :: Int -> Env -> Config -> IO ()
+entry p env cfg =
   run p $
       staticPolicy (noDots >-> addBase "static")
     . gzip def
@@ -80,7 +62,7 @@ entry p env =
     . application
     $ failApp
   where
-    application = runMiddlewareT (runAppM env) $
+    application = runMiddlewareT (runAppM env cfg) $
         contentMiddleware
       . securityMiddleware
       . staticMiddleware

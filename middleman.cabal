@@ -16,10 +16,13 @@ Library
   Exposed-Modules:      Server
                         Application
                         Application.Types
+                        Config
                         Routes
                         Pages.NotFound
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
+                      , aeson
+                      , bytestring
                       , data-default
                       , directory
                       , exceptions
@@ -29,7 +32,9 @@ Library
                       , monad-logger
                       , mtl
                       , nested-routes >= 7.2.1
+                      , network-uri
                       , path-extra
+                      , process
                       , text
                       , transformers
                       , unordered-containers
@@ -47,11 +52,14 @@ Executable middleman
   HS-Source-Dirs:       main
   GHC-Options:          -Wall
   Main-Is:              Main.hs
+  Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5
                       , middleman
                       , aeson
+                      , bytestring
                       , data-default
                       , directory
+                      , exceptions
                       , http-types
                       , mtl
                       , nested-routes

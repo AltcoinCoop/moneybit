@@ -11,6 +11,8 @@ module Application.Types where
 import Config
 import Data.Url
 import Data.Typeable
+import Data.Aeson as A
+import Data.Aeson.Encode.Pretty as A hiding (Config)
 import Path.Extended
 import Control.Monad.Catch
 import Control.Monad.Reader
@@ -22,10 +24,27 @@ import qualified Data.ByteString.Lazy as LBS
 
 -- * Infrastructure of the App
 
--- The environment accessible from our application
+
+-- ** Read-Only Data
+
 data Env = Env
   { envAuthority :: UrlAuthority
   } deriving (Show, Eq)
+
+
+
+-- | Update the config file every time it's changed in the UI
+configure :: MonadApp m
+          => FilePath
+          -> (Config -> Config)
+          -> m ()
+configure cfgPath f = do
+  cfg <- get
+  let cfg' = f cfg
+  put cfg'
+  liftIO . LBS.writeFile cfgPath $ A.encodePretty cfg'
+
+
 
 
 type AppM = LoggingT (ReaderT Env (StateT Config IO))

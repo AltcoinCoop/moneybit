@@ -17,10 +17,10 @@ import Network.URI (parseURI)
 import qualified Data.Text as T
 
 
-
 data Config = Config
   { walletConfig :: WalletConfig
   } deriving (Show, Eq)
+
 
 instance Default Config where
   def = Config

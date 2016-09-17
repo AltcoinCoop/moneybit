@@ -11,6 +11,7 @@ import Config
 
 import           Options.Applicative
 import qualified Data.Aeson as A
+import qualified Data.Aeson.Encode.Pretty as A
 import qualified Data.ByteString.Lazy as LBS
 import Data.Default
 import Data.Monoid
@@ -50,7 +51,7 @@ instance Monoid AppOpts where
 instance Default AppOpts where
   def = AppOpts
           { port   = Just 3000
-          , config = Just "./moneybit.cfg.json"
+          , config = Just "./moneybit.json"
           }
 
 appOpts :: Parser AppOpts
@@ -65,7 +66,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
           long "config"
        <> short 'c'
        <> metavar "CONFIG"
-       <> help "config file location - default `./moneybit.cfg.json`"
+       <> help "config file location - default `./moneybit.json`"
 
 
 
@@ -91,7 +92,10 @@ digestAppOpts AppOpts
             case A.decode cfgFile of
               Nothing  -> throwM $ MalformedConfigFile cfgFile
               Just cfg -> pure cfg
-         else pure def
+         else do
+            putStrLn "No config found, writing to ./moneybit.json"
+            LBS.writeFile c $ A.encodePretty (def :: Config)
+            pure def
 
   pure ( Env
            { envAuthority = a

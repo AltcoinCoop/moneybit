@@ -1,4 +1,4 @@
-Name:                   middleman
+Name:                   moneybit
 Version:                0.0.0
 Author:                 Athan Clark <athan.clark@gmail.com>
 Maintainer:             Athan Clark <athan.clark@gmail.com>
@@ -19,9 +19,12 @@ Library
                         Config
                         Routes
                         Pages.NotFound
+                        Process.Types
+                        Process.Client
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
                       , aeson
+                      , aeson-pretty
                       , bytestring
                       , data-default
                       , directory
@@ -47,15 +50,16 @@ Library
                       , wai-transformers
                       , webpage
 
-Executable middleman
+Executable moneybit
   Default-Language:     Haskell2010
   HS-Source-Dirs:       main
   GHC-Options:          -Wall
   Main-Is:              Main.hs
   Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5
-                      , middleman
+                      , moneybit
                       , aeson
+                      , aeson-pretty
                       , bytestring
                       , data-default
                       , directory

@@ -14,7 +14,9 @@ Just use a .json file for config, easy enough.
 import Data.Aeson as A
 import Data.Default
 import Network.URI (parseURI)
+import Text.Hostname (validHostname)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 
 data Config = Config
@@ -52,10 +54,10 @@ instance Default MoneroDNode where
 instance FromJSON MoneroDNode where
   parseJSON (String s) | s == "local" = pure LocalNode
   parseJSON (Object o) = do
-    u <- T.unpack <$> o .: "url"
-    case parseURI u of
-      Nothing -> fail "Not a url"
-      Just _  -> pure $ RemoteNode u
+    u <- o .: "url"
+    if not . validHostname $ T.encodeUtf8 u
+    then fail "Not a url"
+    else pure . RemoteNode $ T.unpack u
   parseJSON _ = fail "Not a url or local"
 
 instance ToJSON MoneroDNode where

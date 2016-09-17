@@ -29,6 +29,7 @@ Library
                       , data-default
                       , directory
                       , exceptions
+                      , hostname-validate
                       , http-types
                       , lucid
                       , markup

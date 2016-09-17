@@ -30,9 +30,16 @@ import Control.Monad.Catch
 
 openSimpleWallet :: MonadApp m => m Process
 openSimpleWallet = do -- FIXME: Bracket with `exit`
-  client <- walletCliPath . walletConfig <$> get
-  let p = proc client [] -- FIXME: Latest --daemon-host flag
-                         -- FIXME: Wallet file location
+  cfg <- get
+  let wallet = walletConfig cfg
+      client = walletCliPath wallet
+      monerod = walletMoneroDNode wallet
+
+      args = case monerod of
+        LocalNode -> []
+        RemoteNode r -> ["--daemon-host", r]
+
+      p = proc client args -- FIXME: Wallet file location
   r <- liftIO $ createProcess p
          { std_in = CreatePipe
          , std_out = CreatePipe

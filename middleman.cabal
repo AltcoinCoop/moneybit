@@ -1,0 +1,69 @@
+Name:                   middleman
+Version:                0.0.0
+Author:                 Athan Clark <athan.clark@gmail.com>
+Maintainer:             Athan Clark <athan.clark@gmail.com>
+License:                BSD3
+License-File:           LICENSE
+-- Synopsis:
+-- Description:
+Cabal-Version:          >= 1.10
+Build-Type:             Simple
+
+Library
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       src
+  GHC-Options:          -Wall
+  Exposed-Modules:      Server
+                        Application
+                        Application.Types
+                        Routes
+                        Pages.NotFound
+                        Templates.Master
+  Build-Depends:        base >= 4.8 && < 5
+                      , data-default
+                      , directory
+                      , exceptions
+                      , http-types
+                      , lucid
+                      , markup
+                      , monad-logger
+                      , mtl
+                      , nested-routes >= 7.2.1
+                      , path-extra
+                      , text
+                      , transformers
+                      , unordered-containers
+                      , urlpath
+                      , warp
+                      , wai
+                      , wai-extra
+                      , wai-middleware-content-type
+                      , wai-middleware-static
+                      , wai-transformers
+                      , webpage
+
+Executable middleman
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       main
+  GHC-Options:          -Wall
+  Main-Is:              Main.hs
+  Build-Depends:        base >= 4.8 && < 5
+                      , middleman
+                      , aeson
+                      , data-default
+                      , directory
+                      , http-types
+                      , mtl
+                      , nested-routes
+                      , optparse-applicative
+                      , text
+                      , urlpath
+                      , wai-extra
+                      , wai-middleware-static
+                      , wai-transformers
+                      , warp
+                      , yaml
+
+Source-Repository head
+  Type:                 git
+--  Location:

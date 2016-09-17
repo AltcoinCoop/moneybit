@@ -15,6 +15,19 @@ import Control.Monad.IO.Class
 import Control.Monad.Catch
 
 
+-- TODO Codify:
+{-
+
+* Every wallet has a wallet file = ~/.moneybit/?
+* Each wallet has a password - creating one should have passwords
+  pre-inquired?
+  - opening one should be done with --password
+
+# maintain as much as possible in CLI args - piping is a bizzotch
+
+-}
+
+
 openSimpleWallet :: MonadApp m => m Process
 openSimpleWallet = do -- FIXME: Bracket with `exit`
   client <- walletCliPath . walletConfig <$> get

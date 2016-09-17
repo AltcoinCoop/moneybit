@@ -19,6 +19,7 @@ openSimpleWallet :: MonadApp m => m Process
 openSimpleWallet = do -- FIXME: Bracket with `exit`
   client <- walletCliPath . walletConfig <$> get
   let p = proc client [] -- FIXME: Latest --daemon-host flag
+                         -- FIXME: Wallet file location
   r <- liftIO $ createProcess p
          { std_in = CreatePipe
          , std_out = CreatePipe

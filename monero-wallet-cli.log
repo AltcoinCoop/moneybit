@@ -1,9 +1,0 @@
-2016-Sep-17 08:19:11.437519 Monero 'Hydrogen Helix' (v0.9.4.0-e06530e)
-2016-Sep-17 08:19:11.437564 Setting log level = 0
-2016-Sep-17 08:19:11.437580 default_log: monero-wallet-cli.log
-2016-Sep-17 08:19:11.437630 Logging at log level 0 to /home/athan/dev/moneybit/middleman/monero-wallet-cli.log
-2016-Sep-17 08:22:11.219305 Monero 'Hydrogen Helix' (v0.9.4.0-e06530e)
-2016-Sep-17 08:22:11.219349 Setting log level = 0
-2016-Sep-17 08:22:11.219365 default_log: monero-wallet-cli.log
-2016-Sep-17 08:22:11.219392 Logging at log level 0 to /home/athan/dev/moneybit/middleman/monero-wallet-cli.log
-2016-Sep-17 08:22:22.108019 ERROR /home/athan/dev/monero/src/simplewallet/simplewallet.cpp:3927 Failed to initialize wallet

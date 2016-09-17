@@ -1,5 +1,6 @@
 {-# LANGUAGE
     FlexibleContexts
+  , NamedFieldPuns
   #-}
 
 module Process.Client where
@@ -66,8 +67,8 @@ data WalletUpdate
 openSimpleWallet :: MonadApp m => String -> m Process
 openSimpleWallet name = do -- FIXME: Bracket with `exit`
   wrkDir <- envWrkDir <$> ask
-  cfg <- get
-  let wallet = walletConfig cfg
+  Mutable{config} <- get
+  let wallet = walletConfig config
       client = walletCliPath wallet
       monerod = walletMoneroDNode wallet
 

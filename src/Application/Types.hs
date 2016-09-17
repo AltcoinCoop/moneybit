@@ -4,6 +4,7 @@
   , FlexibleContexts
   , MultiParamTypeClasses
   , DeriveGeneric
+  , RecordWildCards
   #-}
 
 module Application.Types where
@@ -20,6 +21,7 @@ import Control.Monad.Logger
 import Control.Monad.State
 import GHC.Generics
 import qualified Data.ByteString.Lazy as LBS
+import Network.HTTP.Client (Request)
 
 
 -- * Infrastructure of the App
@@ -33,6 +35,7 @@ data Env = Env
   } deriving (Show, Eq)
 
 
+-- ** Stateful Data
 
 -- | Update the config file every time it's changed in the UI
 configure :: MonadApp m
@@ -40,22 +43,36 @@ configure :: MonadApp m
           -> (Config -> Config)
           -> m ()
 configure cfgPath f = do
-  cfg <- get
-  let cfg' = f cfg
-  put cfg'
-  liftIO . LBS.writeFile cfgPath $ A.encodePretty cfg'
+  Mutable{..} <- get
+  let config' = f config
+  put Mutable
+        { config = config'
+        , rpcId  = rpcId
+        }
+  liftIO . LBS.writeFile cfgPath
+         $ A.encodePretty config'
 
 
+data Mutable = Mutable
+  { config :: Config
+  , rpcId  :: Int
+  } deriving (Show, Eq)
+
+mkMutable :: Config -> Mutable
+mkMutable c = Mutable
+  { config = c
+  , rpcId  = 0
+  }
 
 
-type AppM = LoggingT (ReaderT Env (StateT Config IO))
+type AppM = LoggingT (ReaderT Env (StateT Mutable IO))
 
-runAppM :: Env -> Config -> AppM a -> IO a
-runAppM env cfg xs = evalStateT (runReaderT (runStderrLoggingT xs) env) cfg
+runAppM :: Env -> Mutable -> AppM a -> IO a
+runAppM env mut xs = evalStateT (runReaderT (runStderrLoggingT xs) env) mut
 
 type MonadApp m =
   ( MonadReader Env m
-  , MonadState Config m
+  , MonadState Mutable m
   , MonadIO m
   , MonadThrow m
   , MonadCatch m
@@ -87,8 +104,3 @@ data ProcessException
   = NotEnoughHandles String
   deriving (Show, Eq, Generic)
 instance Exception ProcessException
-
-data RPCException
-  = MalformedRPCData LBS.ByteString
-  deriving (Show, Eq, Generic)
-instance Exception RPCException

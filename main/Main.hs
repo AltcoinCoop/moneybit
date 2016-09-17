@@ -48,13 +48,13 @@ main = do
       cliOpts = def <> commandOpts
 
   (env,cfg) <- digestAppOpts cliOpts
-  entry (fromJust $ port cliOpts) env cfg
+  entry (fromJust $ port cliOpts) env (mkMutable cfg)
 
 
 
 -- | Entry point, post options parsing
-entry :: Int -> Env -> Config -> IO ()
-entry p env cfg =
+entry :: Int -> Env -> Mutable -> IO ()
+entry p env mut =
   run p $
       staticPolicy (noDots >-> addBase "static")
     . gzip def
@@ -62,7 +62,7 @@ entry p env cfg =
     . application
     $ failApp
   where
-    application = runMiddlewareT (runAppM env cfg) $
+    application = runMiddlewareT (runAppM env mut) $
         contentMiddleware
       . securityMiddleware
       . staticMiddleware

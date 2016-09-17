@@ -110,6 +110,7 @@ digestAppOpts AppOpts
     case mc of
       Nothing ->
 #if defined(mingw32_HOST_OS)
+-- FIXME: There must be a better way...
         pure $ wrkDir ++ "\\moneybit.json"
 #else
         pure $ wrkDir ++ "/moneybit.json"

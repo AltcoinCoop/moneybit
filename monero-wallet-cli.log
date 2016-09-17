@@ -1,0 +1,44 @@
+2016-Sep-17 12:50:05.581804 Monero 'Hydrogen Helix' (v0.9.4.0-e06530e)
+2016-Sep-17 12:50:05.581849 Setting log level = 0
+2016-Sep-17 12:50:05.581866 default_log: monero-wallet-cli.log
+2016-Sep-17 12:50:05.581907 Logging at log level 0 to /home/athan/dev/moneybit/middleman/monero-wallet-cli.log
+2016-Sep-17 12:50:05.582334 ERROR /home/athan/dev/monero/src/wallet/wallet2.cpp:1840 e || !exists. THROW EXCEPTION: error::file_not_found
+2016-Sep-17 12:50:05.582360 /home/athan/dev/monero/src/wallet/wallet2.cpp:1840:N5tools5error15file_error_baseILi1EEE: file not found "foo.keys"
+2016-Sep-17 12:50:05.582379 Exception: tools::error::file_error_base<1>
+2016-Sep-17 12:50:05.582390 Unwinded call stack:
+2016-Sep-17 12:50:05.582634      1                  0x67a750 __cxa_throw + 0x70
+2016-Sep-17 12:50:05.582827      2                  0x75f91a void tools::error::throw_wallet_ex<tools::error::file_error_base<1>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .constprop.1310] + 0x25a
+2016-Sep-17 12:50:05.583007      3                  0x65933d tools::wallet2::load(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0xddd
+2016-Sep-17 12:50:05.583184      4                  0x5064c2 cryptonote::simple_wallet::open_wallet(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool) + 0xf2
+2016-Sep-17 12:50:05.583437      5                  0x4c5c09 cryptonote::simple_wallet::init(boost::program_options::variables_map const&) + 0x5a9
+2016-Sep-17 12:50:05.583618      6                  0x4966f8 main + 0x14e8
+2016-Sep-17 12:50:05.583820      7                  0x7f97804bd830 __libc_start_main + 0xf0
+2016-Sep-17 12:50:05.583993      8                  0x4a8889 _start + 0x29
+2016-Sep-17 12:50:05.584276      9                  0x0
+2016-Sep-17 12:50:05.584388 Error: failed to load wallet: file not found "foo.keys"
+2016-Sep-17 12:50:05.584437 Exception: std::ios_base::failure[abi:cxx11]
+2016-Sep-17 12:50:05.584454 Unwinded call stack:
+2016-Sep-17 12:50:05.584685      1                  0x67a750 __cxa_throw + 0x70
+2016-Sep-17 12:50:05.584857      2                  0x7f977e8d5753 std::__throw_ios_failure(char const*) + 0x63
+2016-Sep-17 12:50:05.600380      3                  0x7f977e9130da std::basic_ios<char, std::char_traits<char> >::clear(std::_Ios_Iostate) + 0x2a
+2016-Sep-17 12:50:05.600858      4                  0x4ac42b epee::file_io_utils::load_file_to_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) + 0x23b
+2016-Sep-17 12:50:05.601298      5                  0x659eb1 tools::wallet2::verify_password(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const + 0x81
+2016-Sep-17 12:50:05.601728      6                  0x506a3e cryptonote::simple_wallet::open_wallet(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool) + 0x66e
+2016-Sep-17 12:50:05.602155      7                  0x4c5c09 cryptonote::simple_wallet::init(boost::program_options::variables_map const&) + 0x5a9
+2016-Sep-17 12:50:05.602581      8                  0x4966f8 main + 0x14e8
+2016-Sep-17 12:50:05.603060      9                  0x7f97804bd830 __libc_start_main + 0xf0
+2016-Sep-17 12:50:05.603566     10                  0x4a8889 _start + 0x29
+2016-Sep-17 12:50:05.603933     11                  0x0
+2016-Sep-17 12:50:05.604029 ERROR /home/athan/dev/monero/src/wallet/wallet2.cpp:1554 !r. THROW EXCEPTION: error::file_read_error
+2016-Sep-17 12:50:05.604066 /home/athan/dev/monero/src/wallet/wallet2.cpp:1554:N5tools5error15file_error_baseILi2EEE: failed to read file "foo.keys"
+2016-Sep-17 12:50:05.604099 Exception: tools::error::file_error_base<2>
+2016-Sep-17 12:50:05.604116 Unwinded call stack:
+2016-Sep-17 12:50:05.604574      1                  0x67a750 __cxa_throw + 0x70
+2016-Sep-17 12:50:05.604945      2                  0x760baa void tools::error::throw_wallet_ex<tools::error::file_error_base<2>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) [clone .constprop.1276] + 0x25a
+2016-Sep-17 12:50:05.605304      3                  0x65a75b tools::wallet2::verify_password(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const + 0x92b
+2016-Sep-17 12:50:05.605660      4                  0x506a3e cryptonote::simple_wallet::open_wallet(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool) + 0x66e
+2016-Sep-17 12:50:05.606025      5                  0x4c5c09 cryptonote::simple_wallet::init(boost::program_options::variables_map const&) + 0x5a9
+2016-Sep-17 12:50:05.606410      6                  0x4966f8 main + 0x14e8
+2016-Sep-17 12:50:05.606801      7                  0x7f97804bd830 __libc_start_main + 0xf0
+2016-Sep-17 12:50:05.607149      8                  0x4a8889 _start + 0x29
+2016-Sep-17 12:50:05.607550      9                  0x0

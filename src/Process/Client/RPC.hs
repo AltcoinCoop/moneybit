@@ -1,13 +1,14 @@
 module Process.Client.RPC where
 
 import Data.Json.RPC
-import Data.Aeson as A
-
+import Network (HostName)
+import Network.HTTP.Client (Manager)
 
 
 data GotBalance = GotBalance
-  { balance :: Double
+  { balance         :: Double
   , unlockedBalance :: Double
-  }
+  } deriving (Show, Eq)
 
-getBalance :: MonadApp m => m ?
+getBalance :: Manager -> HostName -> IO (RPCResponse GotBalance)
+getBalance m h = rpc m h $ RPCRequest

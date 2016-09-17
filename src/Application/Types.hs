@@ -29,6 +29,7 @@ import qualified Data.ByteString.Lazy as LBS
 
 data Env = Env
   { envAuthority :: UrlAuthority
+  , envWrkDir    :: FilePath
   } deriving (Show, Eq)
 
 
@@ -80,11 +81,14 @@ instance ToLocation AppLinks Abs File where
 data InitException
   = MalformedConfigFile LBS.ByteString
   deriving (Show, Eq, Generic)
-
 instance Exception InitException
 
 data ProcessException
   = NotEnoughHandles String
   deriving (Show, Eq, Generic)
-
 instance Exception ProcessException
+
+data RPCException
+  = MalformedRPCData LBS.ByteString
+  deriving (Show, Eq, Generic)
+instance Exception RPCException

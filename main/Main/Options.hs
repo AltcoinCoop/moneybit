@@ -2,6 +2,7 @@
     DeriveGeneric
   , NamedFieldPuns
   , RecordWildCards
+  , CPP
   #-}
 
 module Main.Options where
@@ -18,7 +19,14 @@ import Data.Monoid
 import Data.Url
 import Control.Monad
 import Control.Monad.Catch
-import System.Directory (doesFileExist)
+import System.Environment (lookupEnv)
+import System.Directory ( doesFileExist, doesDirectoryExist
+                        , getHomeDirectory, createDirectoryIfMissing
+                        , getAppUserDataDirectory)
+import System.IO.Error (isDoesNotExistError)
+#ifdef mingw32_HOST_OS
+import qualified System.Win32 as Win32
+#endif
 import GHC.Generics
 
 
@@ -51,7 +59,7 @@ instance Monoid AppOpts where
 instance Default AppOpts where
   def = AppOpts
           { port   = Just 3000
-          , config = Just "./moneybit.json"
+          , config = Nothing
           }
 
 appOpts :: Parser AppOpts
@@ -66,7 +74,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
           long "config"
        <> short 'c'
        <> metavar "CONFIG"
-       <> help "config file location - default `./moneybit.json`"
+       <> help "config file location - default `~/.moneybit/moneybit.json`"
 
 
 
@@ -75,7 +83,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
 digestAppOpts :: AppOpts -> IO (Env, Config)
 digestAppOpts AppOpts
                { port = Just p
-               , config = Just c
+               , config = mc
                } = do
   let a = UrlAuthority
             { urlScheme  = "http"
@@ -84,6 +92,29 @@ digestAppOpts AppOpts
             , urlHost    = "localhost"
             , urlPort    = p <$ guard (p /= 80)
             }
+  wrkDir <- getAppUserDataDirectory "moneybit" `catch`
+    (\e ->  if isDoesNotExistError e
+            then do
+#if defined(mingw32_HOST_OS)
+              home <- Win32.sHGetFolderPath nullPtr Win32.cSIDL_APPDATA nullPtr 0
+              let x = home ++ "\\moneybit"
+#else
+              home <- getHomeDirectory
+              let x = home ++ "/.moneybit"
+#endif
+              createDirectoryIfMissing True x
+              return x
+            else throwM e)
+
+  c <-
+    case mc of
+      Nothing ->
+#if defined(mingw32_HOST_OS)
+        pure $ wrkDir ++ "\\moneybit.json"
+#else
+        pure $ wrkDir ++ "/moneybit.json"
+#endif
+      Just c -> pure c
 
   exists <- doesFileExist c
   cfg <- if exists
@@ -99,6 +130,7 @@ digestAppOpts AppOpts
 
   pure ( Env
            { envAuthority = a
+           , envWrkDir = wrkDir
            }
        , cfg
        )

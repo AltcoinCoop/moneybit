@@ -28,16 +28,58 @@ import Control.Monad.Catch
 -}
 
 
-openSimpleWallet :: MonadApp m => m Process
-openSimpleWallet = do -- FIXME: Bracket with `exit`
+
+{-
+
+TODO:
+
+- Process monad, where txns can only happen in an open process
+- exit closes handles & kills process
+- codify actions
+
+data WalletQuery
+  = Address
+  | Balance
+  | Payments [PaymentId]
+  | TxInfo TransactionId
+
+data WalletSign
+  = Sign FilePath
+  | Verify FilePath
+
+data WalletAuthQuery
+  = Seed
+  | SpendKey
+  | ViewKey
+
+data WalletUpdate
+  = Transfer
+      { transferMixins :: Int
+      , payees :: [(Address, Double)]
+      }
+
+-}
+
+
+
+-- TODO: new wallet vs. opening an old one (expectations?)
+openSimpleWallet :: MonadApp m => String -> m Process
+openSimpleWallet name = do -- FIXME: Bracket with `exit`
+  wrkDir <- envWrkDir <$> ask
   cfg <- get
   let wallet = walletConfig cfg
       client = walletCliPath wallet
       monerod = walletMoneroDNode wallet
 
-      args = case monerod of
-        LocalNode -> []
-        RemoteNode r -> ["--daemon-host", r]
+      args =
+        let as = case monerod of
+                    LocalNode -> []
+                    RemoteNode r -> ["--daemon-host", r]
+        in  [ "--log-file=" ++ wrkDir ++ "/wallets/" ++ name ++ ".log"
+              -- FIXME Windows compat FIXME check & create
+            , "--wallet-file=" ++ wrkDir ++ "/wallets/" ++ name
+              -- FIXME Windows compat
+            ]
 
       p = proc client args -- FIXME: Wallet file location
   r <- liftIO $ createProcess p

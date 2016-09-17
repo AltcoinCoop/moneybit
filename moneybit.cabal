@@ -17,6 +17,7 @@ Library
                         Application
                         Application.Types
                         Config
+                        Data.Json.RPC
                         Routes
                         Pages.NotFound
                         Process.Types
@@ -30,12 +31,14 @@ Library
                       , directory
                       , exceptions
                       , hostname-validate
+                      , http-client
                       , http-types
                       , lucid
                       , markup
                       , monad-logger
                       , mtl
-                      , nested-routes >= 7.2.1
+                      , nested-routes >= 7.2.2
+                      , network
                       , network-uri
                       , path-extra
                       , process

@@ -19,6 +19,7 @@ Library
                         Config
                         Data.Json.RPC
                         Routes
+                        Monero.Types
                         Pages.NotFound
                         Process.Types
                         Process.Client

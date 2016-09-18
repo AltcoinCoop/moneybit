@@ -12,7 +12,11 @@ module Data.Json.RPC where
 import Application.Types
 
 import Data.Aeson as A
+import Data.Aeson.Types as A
+import Data.Char (isSpace)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.ByteString.Lazy as LBS
 import Control.Applicative
 import Control.Monad.Catch
@@ -51,15 +55,15 @@ data RPCResponseError = RPCResponseError
 
 instance FromJSON RPCResponseError where
   parseJSON (Object o) = do
-    c <- o .: "code"
-    m <- o .: "message"
-    d <- (o .: "data") <|> pure Nothing
+    c <- o .:  "code"
+    m <- o .:  "message"
+    d <- o .:? "data"
     pure $ RPCResponseError c m d
-  parseJSON _ = fail "Not an object"
+  parseJSON x = typeMismatch "RPCResponseError" x
 
 data RPCResponse rs = RPCResponse
-  { rpcRespId      :: Int
-  , rpcRespResult  :: Either RPCResponseError rs
+  { rpcRespId     :: Int
+  , rpcRespResult :: Either RPCResponseError rs
   } deriving (Show, Eq)
 
 instance FromJSON rs => FromJSON (RPCResponse rs) where
@@ -69,11 +73,15 @@ instance FromJSON rs => FromJSON (RPCResponse rs) where
     then fail "Not 2.0 version"
     else do
       i <- o .: "id"
-      r <-  (Left <$> o .: "error")
+      r <-  (Left  <$> o .: "error")
         <|> (Right <$> o .: "result")
       pure $ RPCResponse i r
-  parseJSON _ = fail "Not an object"
+  parseJSON x = typeMismatch "RPCResponse" x
 
+
+-- monomorphism restriction in existentally quantified types?
+nil :: Maybe ()
+nil = Nothing
 
 
 rpc :: ( ToJSON ps
@@ -100,33 +108,32 @@ rpc port mgr method mx = do
               , method = "POST"
               }
   response <- liftIO $ httpLbs r' mgr
-  case A.decode $ responseBody response of
-    Nothing -> throwM . MalformedRPCData $ responseBody response
-    Just resp -> do
+  let body = responseBody response
+  case A.eitherDecode' body of
+    Left e -> throwM $ MalformedRPCData e body
+    Right resp -> do
       let idx' = rpcRespId resp
       if idx' /= idx
       then throwM $ MismatchingIds idx idx' req
       else case rpcRespResult resp of
-        Left e -> throwM $ RPCError e
+        Left  e -> throwM $ RPCError e
         Right y -> pure y
 
 
 freshId :: MonadApp m => m Int
 freshId = do
   idx <- rpcId <$> get
-  modify' (\m -> m {rpcId = rpcId m + 1})
+  modify' $ \m -> m {rpcId = rpcId m + 1}
   pure idx
 
 
 
 
 data RPCException where
-  MalformedRPCData :: LBS.ByteString -> RPCException
-  MismatchingIds :: Show a => Int -> Int -> RPCRequest a -> RPCException
-  RPCError :: RPCResponseError -> RPCException
+  MalformedRPCData :: String -> LBS.ByteString -> RPCException
+  MismatchingIds   :: Show a => Int -> Int -> RPCRequest a -> RPCException
+  RPCError         :: RPCResponseError -> RPCException
 
 deriving instance Show RPCException
--- deriving instance Eq RPCException
--- deriving instance Generic RPCException
 instance Exception RPCException
 

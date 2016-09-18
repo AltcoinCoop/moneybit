@@ -22,6 +22,7 @@ Library
                         Pages.NotFound
                         Process.Types
                         Process.Client
+                        Process.Client.RPC
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
                       , aeson
@@ -57,7 +58,7 @@ Library
 Executable moneybit
   Default-Language:     Haskell2010
   HS-Source-Dirs:       main
-  GHC-Options:          -Wall
+  GHC-Options:          -Wall -threaded
   Main-Is:              Main.hs
   Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5
@@ -68,6 +69,7 @@ Executable moneybit
                       , data-default
                       , directory
                       , exceptions
+                      , filepath
                       , http-types
                       , mtl
                       , nested-routes

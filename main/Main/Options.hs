@@ -24,6 +24,7 @@ import System.Directory ( doesFileExist, doesDirectoryExist
                         , getHomeDirectory, createDirectoryIfMissing
                         , getAppUserDataDirectory)
 import System.IO.Error (isDoesNotExistError)
+import System.FilePath
 #ifdef mingw32_HOST_OS
 import qualified System.Win32 as Win32
 #endif
@@ -93,8 +94,9 @@ digestAppOpts AppOpts
             , urlPort    = p <$ guard (p /= 80)
             }
   wrkDir <- getAppUserDataDirectory "moneybit" `catch`
-    (\e ->  if isDoesNotExistError e
-            then do
+    (\e ->  if not $ isDoesNotExistError e
+            then throwM e
+            else do
 #if defined(mingw32_HOST_OS)
               home <- Win32.sHGetFolderPath nullPtr Win32.cSIDL_APPDATA nullPtr 0
               let x = home ++ "\\moneybit"
@@ -102,19 +104,15 @@ digestAppOpts AppOpts
               home <- getHomeDirectory
               let x = home ++ "/.moneybit"
 #endif
-              createDirectoryIfMissing True x
               return x
-            else throwM e)
+    )
+
+  createDirectoryIfMissing True wrkDir
 
   c <-
     case mc of
       Nothing ->
-#if defined(mingw32_HOST_OS)
--- FIXME: There must be a better way...
-        pure $ wrkDir ++ "\\moneybit.json"
-#else
-        pure $ wrkDir ++ "/moneybit.json"
-#endif
+        pure $ wrkDir </> "moneybit.json"
       Just c -> pure c
 
   exists <- doesFileExist c
@@ -125,7 +123,7 @@ digestAppOpts AppOpts
               Nothing  -> throwM $ MalformedConfigFile cfgFile
               Just cfg -> pure cfg
          else do
-            putStrLn "No config found, writing to ./moneybit.json"
+            putStrLn $ "No config found, writing to " ++ c
             LBS.writeFile c $ A.encodePretty (def :: Config)
             pure def
 
@@ -136,3 +134,9 @@ digestAppOpts AppOpts
        , cfg
        )
 digestAppOpts AppOpts{..} = error "impossible state"
+
+
+runAppMTest :: AppM a -> IO a
+runAppMTest xs = do
+  (e,c) <- digestAppOpts def
+  runAppM e (mkMutable c) xs

@@ -28,5 +28,5 @@ instance FromJSON GotBalance where
   parseJSON x = typeMismatch "GotBalance" x
 
 
-getBalance :: MonadApp m => Int -> Manager -> m (RPCResponse GotBalance)
-getBalance p m = rpc p m "getbalance" nil
+getBalance :: MonadApp m => Int -> Manager -> m GotBalance
+getBalance p m = rpc p m "getbalance" nada

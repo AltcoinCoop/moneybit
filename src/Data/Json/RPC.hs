@@ -80,8 +80,8 @@ instance FromJSON rs => FromJSON (RPCResponse rs) where
 
 
 -- monomorphism restriction in existentally quantified types?
-nil :: Maybe ()
-nil = Nothing
+nada :: Maybe ()
+nada = Nothing
 
 
 rpc :: ( ToJSON ps
@@ -108,6 +108,7 @@ rpc port mgr method mx = do
               , method = "POST"
               }
   response <- liftIO $ httpLbs r' mgr
+
   let body = responseBody response
   case A.eitherDecode' body of
     Left e -> throwM $ MalformedRPCData e body

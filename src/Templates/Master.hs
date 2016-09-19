@@ -63,7 +63,7 @@ masterPage =
                deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.css" :: T.Text)
                deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/font-mfizz/2.3.0/font-mfizz.css" :: T.Text)
                inlineStyles
-           , bodyScripts =
+           , bodyScripts = do
                deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js" :: T.Text)
                deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.js" :: T.Text)
                inlineScripts

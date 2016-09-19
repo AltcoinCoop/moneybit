@@ -12,6 +12,7 @@ import Data.Json.RPC
 
 import Data.Aeson as A
 import Data.Aeson.Types as A
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Network (HostName)
 import Network.HTTP.Client (Manager)
@@ -211,3 +212,40 @@ instance FromJSON QueriedKey where
 
 queryKey :: MonadApp m => Int -> Manager -> QueryKey -> m T.Text -- FIXME account for either
 queryKey p m q = rpc p m "query_key" $ Just q
+
+
+newtype MakeIntegratedAddress = MakeIntegratedAddress
+  { makeIntegratedAddress' :: Maybe PaymentId
+  } deriving (Show, Eq)
+instance ToJSON MakeIntegratedAddress where
+  toJSON MakeIntegratedAddress{..} = object
+    ["payment_id" .= fromMaybe "" makeIntegratedAddress']
+
+newtype MadeIntegratedAddress = MadeIntegratedAddress
+  { madeIntegratedAddress :: Address
+  } deriving (Show, Eq)
+instance FromJSON MadeIntegratedAddress where
+  parseJSON (Object o) = MadeIntegratedAddress <$> o .: "integrated_address"
+  parseJSON x = typeMismatch "MadeIntegratedAddress" x
+
+makeIntegratedAddress :: MonadApp m => Int -> Manager -> MakeIntegratedAddress
+                      -> m MadeIntegratedAddress
+makeIntegratedAddress p m m' = rpc p m "make_integrated_address" $ Just m'
+
+
+newtype SplitIntegratedAddress = SplitIntegratedAddress
+  { splitIntegratedAddress' :: Address
+  } deriving (Show, Eq)
+instance ToJSON SplitIntegratedAddress where
+  toJSON SplitIntegratedAddress{..} = object
+    ["integrated_address" .= splitIntegratedAddress']
+
+data GotSplitIntegratedAddress = GotSplitIntegratedAddress
+  { gotSplitStandardAddress :: Address
+  , gotSplitPaymentId       :: PaymentId
+  } deriving (Show, Eq)
+instance FromJSON GotSplitIntegratedAddress where
+  parseJSON (Object o) =
+    GotSplitIntegratedAddress <$> o .: "standard_address"
+                              <*> o .: "payment_id"
+  parseJSON x = typeMismatch "GotSplitIntegratedAddress" x

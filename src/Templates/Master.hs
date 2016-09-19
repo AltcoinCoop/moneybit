@@ -2,6 +2,7 @@
     OverloadedStrings
   , ScopedTypeVariables
   , FlexibleContexts
+  , QuasiQuotes
   #-}
 
 module Templates.Master where
@@ -13,8 +14,11 @@ import Web.Page.Lucid
 import Web.Routes.Nested
 import qualified Network.Wai.Middleware.ContentType.Types as CT
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.IO as LT
 import Network.HTTP.Types
 import Lucid
+import Text.Heredoc (there, here)
 
 import qualified Data.HashMap.Strict as HM
 import Data.Monoid
@@ -51,14 +55,48 @@ masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
       page = def
-  in  page { pageTitle = "App"
-           , styles =
+  in  page { pageTitle = "Moneybit Monero Wallet"
+           , metaVars = do meta_ [charset_ "utf-8"]
+                           meta_ [httpEquiv_ "X-UA-Compatible", content_ "IE=edge,chrome=1"]
+                           meta_ [name_ "viewport", content_ "width-device-width, initial-scale=1.0, maximum-scale=1.0"]
+           , styles = do
+               deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.css" :: T.Text)
+               deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/font-mfizz/2.3.0/font-mfizz.css" :: T.Text)
                inlineStyles
+           , bodyScripts =
+               deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js" :: T.Text)
+               deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.js" :: T.Text)
+               inlineScripts
            }
   where
     inlineStyles :: MonadApp m => HtmlT m ()
-    inlineStyles =
-      deploy M.Css Inline ("body {background: gray;}" :: T.Text)
+    inlineStyles = do
+      let css :: LT.Text
+          css = [there|./frontend/style.css|]
+      deploy M.Css Inline css
+
+    inlineScripts :: MonadApp m => HtmlT m ()
+    inlineScripts = do
+      let elm :: LT.Text
+          elm = [there|./frontend/dist/Main.min.js|]
+          flags :: LT.Text
+          flags =[here| var host_ = "http://localhost:3000";
+                        var flags_ = {
+                          "wallets" : [
+                            {
+                              "name" : "foo"
+                            },
+                            {
+                              "name" : "bar"
+                            }
+                          ]
+                        };
+                      |]
+          init :: LT.Text
+          init = [there|./frontend/init.js|]
+      deploy M.JavaScript Inline elm -- FIXME
+      deploy M.JavaScript Inline flags
+      deploy M.JavaScript Inline init
 
 
 masterTemplate :: ( MonadApp m

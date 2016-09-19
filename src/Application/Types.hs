@@ -9,7 +9,6 @@
 
 module Application.Types where
 
-import Config
 import Data.Url
 import Data.Typeable
 import Data.Aeson as A
@@ -36,6 +35,8 @@ data Env = Env
 
 
 -- ** Stateful Data
+
+type Config = ()
 
 -- | Update the config file every time it's changed in the UI
 configure :: MonadApp m

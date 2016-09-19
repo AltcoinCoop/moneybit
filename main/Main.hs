@@ -7,7 +7,7 @@
 module Main where
 
 import Main.Options
-import Config
+-- import Config
 import Application
 import Application.Types
 
@@ -48,7 +48,7 @@ main = do
       cliOpts = def <> commandOpts
 
   (env,cfg) <- digestAppOpts cliOpts
-  entry (fromJust $ port cliOpts) env (mkMutable cfg)
+  entry (fromJust $ port cliOpts) env undefined -- (mkMutable cfg)
 
 
 

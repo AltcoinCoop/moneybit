@@ -8,7 +8,6 @@
 module Main.Options where
 
 import Application.Types
-import Config
 
 import           Options.Applicative
 import qualified Data.Aeson as A
@@ -81,7 +80,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
 
 -- | Note that this function will fail to pattern match on @Nothing@'s - use
 -- @def@ beforehand.
-digestAppOpts :: AppOpts -> IO (Env, Config)
+digestAppOpts :: AppOpts -> IO (Env, config)
 digestAppOpts AppOpts
                { port = Just p
                , config = mc
@@ -116,22 +115,22 @@ digestAppOpts AppOpts
       Just c -> pure c
 
   exists <- doesFileExist c
-  cfg <- if exists
-         then do
-            cfgFile <- LBS.readFile c
-            case A.decode cfgFile of
-              Nothing  -> throwM $ MalformedConfigFile cfgFile
-              Just cfg -> pure cfg
-         else do
-            putStrLn $ "No config found, writing to " ++ c
-            LBS.writeFile c $ A.encodePretty (def :: Config)
-            pure def
+  --cfg <- if exists
+  --       then do
+  --          cfgFile <- LBS.readFile c
+  --          case A.decode cfgFile of
+  --            Nothing  -> throwM $ MalformedConfigFile cfgFile
+  --            Just cfg -> pure cfg
+  --       else do
+  --          putStrLn $ "No config found, writing to " ++ c
+  --          LBS.writeFile c $ A.encodePretty (def :: Config)
+  --          pure def
 
   pure ( Env
            { envAuthority = a
            , envWrkDir = wrkDir
            }
-       , cfg
+       , undefined
        )
 digestAppOpts AppOpts{..} = error "impossible state"
 

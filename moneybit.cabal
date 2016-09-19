@@ -16,14 +16,9 @@ Library
   Exposed-Modules:      Server
                         Application
                         Application.Types
-                        Config
                         Data.Json.RPC
                         Routes
-                        Monero.Types
                         Pages.NotFound
-                        Process.Types
-                        Process.Client
-                        Process.Client.RPC
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
                       , aeson
@@ -32,6 +27,7 @@ Library
                       , data-default
                       , directory
                       , exceptions
+                      , heredoc
                       , hostname-validate
                       , http-client
                       , http-types

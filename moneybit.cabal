@@ -12,7 +12,7 @@ Build-Type:             Simple
 Library
   Default-Language:     Haskell2010
   HS-Source-Dirs:       src
-  GHC-Options:          -Wall
+  GHC-Options:          -Wall -optl-static -optl-pthread
   Exposed-Modules:      Server
                         Application
                         Application.Types
@@ -40,6 +40,7 @@ Library
                       , network-uri
                       , path-extra
                       , process
+                      , saltine
                       , text
                       , transformers
                       , unordered-containers
@@ -55,7 +56,7 @@ Library
 Executable moneybit
   Default-Language:     Haskell2010
   HS-Source-Dirs:       main
-  GHC-Options:          -Wall -threaded
+  GHC-Options:          -Wall -threaded -optl-static -optl-pthread
   Main-Is:              Main.hs
   Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5

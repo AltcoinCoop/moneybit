@@ -63,6 +63,10 @@ masterPage =
                deploy M.Css Remote ("/vendor/semantic/dist/semantic.min.css" :: T.Text)
                inlineStyles
            , bodyScripts = do
+               let modulePre :: LT.Text
+                   modulePre = [here|if (typeof module === 'object') {window.module = module; module = undefined;}
+                                    |]
+               deploy M.JavaScript Inline modulePre
                let jquery :: LT.Text
                    jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
                deploy M.JavaScript Inline jquery
@@ -82,7 +86,12 @@ masterPage =
     inlineScripts = do
       let elm :: LT.Text
           elm = [there|./frontend/dist/Main.min.js|]
-          flags :: LT.Text
+      deploy M.JavaScript Inline elm
+      let modulePost :: LT.Text
+          modulePost = [here|if (window.module) module = window.module;
+                            |]
+      deploy M.JavaScript Inline modulePost
+      let flags :: LT.Text
           flags =[here| var host_ = "http://localhost:3000";
                         var flags_ = {
                           "wallets" : [
@@ -95,10 +104,9 @@ masterPage =
                           ]
                         };
                       |]
-          init :: LT.Text
-          init = [there|./frontend/init.js|]
-      deploy M.JavaScript Inline elm -- FIXME
       deploy M.JavaScript Inline flags
+      let init :: LT.Text
+          init = [there|./frontend/init.js|]
       deploy M.JavaScript Inline init
 
 

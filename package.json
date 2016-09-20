@@ -1,0 +1,23 @@
+{
+  "name": "moneybit",
+  "version": "0.0.0",
+  "description": "Monero GUI wallet",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^1.4.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moneybit/middleend.git"
+  },
+  "author": "Athan Clark",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/moneybit/middleend/issues"
+  },
+  "homepage": "https://github.com/moneybit/middleend#readme"
+}

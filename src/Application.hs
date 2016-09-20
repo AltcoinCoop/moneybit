@@ -53,8 +53,7 @@ staticMiddleware app req respond = do
     let fileRequested = T.unpack
                       . T.intercalate "/"
                       $ pathInfo req
-    -- basePath <- envStatic <$> ask
-    let basePath = "./static"
+    basePath <- envStatic <$> ask
     let file = basePath ++ "/" ++ fileRequested
     fileExists <- liftIO (doesFileExist file)
     if fileExists

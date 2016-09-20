@@ -1,5 +1,18 @@
 # MoneyBit Monero Wallet
 
+
+## Running Client (linux)
+
+
+This _should_ work. If it doesn't, please file an issue.
+
+
+```bash
+npm install
+./moneybit
+```
+
+
 ## Building
 
 > 0. Use linux or mac :b

@@ -60,12 +60,15 @@ masterPage =
                            meta_ [httpEquiv_ "X-UA-Compatible", content_ "IE=edge,chrome=1"]
                            meta_ [name_ "viewport", content_ "width-device-width, initial-scale=1.0, maximum-scale=1.0"]
            , styles = do
-               deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.css" :: T.Text)
-               deploy M.Css Remote ("https://cdnjs.cloudflare.com/ajax/libs/font-mfizz/2.3.0/font-mfizz.css" :: T.Text)
+               deploy M.Css Remote ("/vendor/semantic/dist/semantic.min.css" :: T.Text)
                inlineStyles
            , bodyScripts = do
-               deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js" :: T.Text)
-               deploy M.JavaScript Remote ("https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.js" :: T.Text)
+               let jquery :: LT.Text
+                   jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
+               deploy M.JavaScript Inline jquery
+               let semanticJs :: LT.Text
+                   semanticJs = [there|./frontend/bower_components/semantic/dist/semantic.min.js|]
+               deploy M.JavaScript Inline semanticJs
                inlineScripts
            }
   where

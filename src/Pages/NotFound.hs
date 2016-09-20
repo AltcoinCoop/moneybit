@@ -23,7 +23,7 @@ import Control.Monad.Trans
 notFoundContent :: ( MonadApp m
                    ) => HtmlT (AbsoluteUrlT m) ()
 notFoundContent = do
-  home <- T.pack <$> lift (locUrl =<< toLocation AppHome)
+  home <- T.pack <$> lift (locUrl =<< toLocation AppWallets)
 
   let page :: Monad m => WebPage (HtmlT m ()) T.Text
       page = def { metaVars = meta_ [ makeAttribute "http-equiv" "refresh"

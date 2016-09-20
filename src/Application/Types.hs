@@ -84,13 +84,13 @@ type MonadApp m =
 -- * Links
 
 data AppLinks
-  = AppHome
+  = AppWallets
 
 instance ToPath AppLinks Abs File where
-  toPath AppHome = parseAbsFile "/index"
+  toPath AppWallets = parseAbsFile "/index"
 
 instance ToLocation AppLinks Abs File where
-  toLocation AppHome = (addFileExt "min.js" . fromPath) <$> toPath AppHome
+  toLocation AppWallets = fromPath <$> toPath AppWallets
 
 
 

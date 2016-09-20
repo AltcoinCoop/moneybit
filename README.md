@@ -2,10 +2,12 @@
 
 ## Building
 
+> 0. Use linux or mac :b
+
 1. Get [stack](http://www.haskellstack.org/)
 2. clone this repo & `cd` into it
 3. `git submodule update --init --recursive` to get the frontend code
-4. `./build` will compile the code & copy under `./bin/moneybit`
+4. `./build.sh` will compile the code & copy under `./bin/moneybit`
 5. Run the server with `./bin/moneybit` (check out flags w/ `--help`)
 
 

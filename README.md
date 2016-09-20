@@ -11,8 +11,13 @@
 5. Run the server with `./bin/moneybit` (check out flags w/ `--help`)
 
 
+Then, you can point your browser to `http://localhost:3000` to see it in
+action.
+
+
 ## TODO
 
+- electron/webkit wrapper of the web page, to make it "feel" like an application
 - frontend/backend encryption w/ libsodium - even though we're in localhost,
   an attacker could easily just prod the restufl interface to the wallets
 - flesh out hmonero C bindings, or wait until `moner-wallet-cli` has UNIX socket

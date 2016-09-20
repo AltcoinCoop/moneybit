@@ -47,7 +47,7 @@ respondIcon f app req resp =
 
 
 icons :: [(FilePath, BS.ByteString)]
-icons = $(embedDir "./static/vendor/semantic/dist/themes/default/assets/fonts/")
+icons = $(embedDir "./frontend/bower_components/semantic/dist/themes/default/assets/fonts/")
 
 homeHandle :: ActionT AppM ()
 homeHandle = get $ html (Just AppWallets) ""

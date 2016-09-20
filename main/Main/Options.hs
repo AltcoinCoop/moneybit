@@ -34,7 +34,6 @@ import GHC.Generics
 data AppOpts = AppOpts
   { port   :: Maybe Int
   , config :: Maybe FilePath
-  , static :: Maybe FilePath
   } deriving Generic
 
 instance Monoid AppOpts where
@@ -42,34 +41,29 @@ instance Monoid AppOpts where
     AppOpts
       { port = Nothing
       , config = Nothing
-      , static = Nothing
       }
   mappend
     AppOpts
       { port = p1
       , config = c1
-      , static = s1
       }
     AppOpts
       { port = p2
       , config = c2
-      , static = s2
       } =
     AppOpts
       { port   = getLast $ Last p1 <> Last p2
       , config = getLast $ Last c1 <> Last c2
-      , static = getLast $ Last s1 <> Last s2
       }
 
 instance Default AppOpts where
   def = AppOpts
           { port   = Just 3000
           , config = Nothing
-          , static = Just "./static"
           }
 
 appOpts :: Parser AppOpts
-appOpts = AppOpts <$> portOpt <*> configOpt <*> staticOpt
+appOpts = AppOpts <$> portOpt <*> configOpt
   where
     portOpt = optional . option auto $
           long "port"
@@ -81,11 +75,6 @@ appOpts = AppOpts <$> portOpt <*> configOpt <*> staticOpt
        <> short 'c'
        <> metavar "CONFIG"
        <> help "config file location - default `~/.moneybit/moneybit.json`"
-    staticOpt = optional . strOption $
-          long "static"
-       <> short 's'
-       <> metavar "STATIC"
-       <> help "static files location - default `./static`"
 
 
 
@@ -95,7 +84,6 @@ digestAppOpts :: AppOpts -> IO (Env, config)
 digestAppOpts AppOpts
                { port = Just p
                , config = mc
-               , static = Just s
                } = do
   let a = UrlAuthority
             { urlScheme  = "http"
@@ -141,7 +129,6 @@ digestAppOpts AppOpts
   pure ( Env
            { envAuthority = a
            , envWrkDir = wrkDir
-           , envStatic = s
            }
        , undefined -- FIXME
        )

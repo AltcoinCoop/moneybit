@@ -31,7 +31,6 @@ import Network.HTTP.Client (Request)
 data Env = Env
   { envAuthority :: UrlAuthority
   , envWrkDir    :: FilePath
-  , envStatic    :: FilePath
   } deriving (Show, Eq)
 
 

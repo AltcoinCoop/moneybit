@@ -4,7 +4,9 @@
 ## Running Client (linux)
 
 
-This _should_ work. If it doesn't, please file an issue.
+> This _"should"_ work, but may not. If it doesn't, please file an issue and copy
+> the logs! If at all possible, __please__ try to make it an
+> [SSCCE](http://sscce.org/).
 
 
 ```bash
@@ -13,26 +15,79 @@ npm install
 ```
 
 
-## Building
+## Building on linux
 
-> 0. Use linux or mac :b
+Steps:
 
-1. Get [stack](http://www.haskellstack.org/), a recent version of node, and bower
-2. clone this repo & `cd` into it
-3. `git submodule update --init --recursive` to get the frontend code
-3.5 `cd frontend && bower install && cd ../` to fetch assets like jQuery
-4. `./build.sh` will compile the code & copy under `./bin/moneybit`
-5. Run the server with `./bin/moneybit` (check out the flags w/ `--help`)
+- install [git](https://git-scm.com/)
+- install [stack](https://www.haskellstack.org/)
+- install [node](https://nodejs.org)
+- install [bower](https://bower.io)
+- install [libsodium](https://download.libsodium.org/doc/)
+- clone this repo and the sub-repos
+- fetch the assets for the frontend
+- build the server (takes like 10 minutes)
 
+### Ubuntu
 
-Then, you can point your browser to `http://localhost:3000` to see it in
-action.
+__Get git and libsodium__:
+```
+sudo apt-get install git libsodium-dev
+```
 
+__Get haskell__:
+```bash
+curl -sSL https://get.haskellstack.org/ | sh
+```
 
-## TODO
+it should be available as a command after that. Try `stack --version` just to check.
 
-- electron/webkit wrapper of the web page, to make it "feel" like an application
-- frontend/backend encryption w/ libsodium - even though we're in localhost,
-  an attacker could easily just prod the restufl interface to the wallets
-- flesh out hmonero C bindings, or wait until `moner-wallet-cli` has UNIX socket
-  support
+__Get node__:
+```bash
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.0/install.sh | bash
+nvm install node && nvm use node
+```
+
+__Get bower__:
+```bash
+npm install -g bower
+```
+
+__Cloning and fetching assets__:
+```bash
+git clone https://github.com/moneybit/middleend.git moneybit
+cd moneybit/
+git submodule update --init --recursive
+npm install
+cd frontend/
+bower install
+```
+
+__Buiding__:
+```bash
+./build.sh
+```
+
+This will fetch the GHC compiler for Haskell and build the executable.
+After that, you can run
+
+```bash
+./moneybit
+```
+
+to start the electrum client (soon to be integrated directly in the
+haskell executable instead), of if you want, you can run the server
+itself with `./bin/moneybit`. From there, you can point your browser
+to `http://localhost:3000`.
+
+## TODO / Needs to be implemented
+
+- frontend/backend encryption w/ libsodium
+    - Generate a shared private key at compile time, to ensure server
+      authenticity (poor man's SSL, but still strong)
+    - I'm steering away from a TLS layer, because that would imply a
+      certificate. I could maintain my own with letsencrypt or something
+      similar, but I want less ties to my consistency and more stability
+      even through abandonment
+- flesh out monero C bindings to Haskell (difficult/fun :D)
+- More UX stuff

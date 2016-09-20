@@ -16,6 +16,7 @@ import qualified Network.Wai.Middleware.ContentType.Types as CT
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
+import qualified Data.ByteString as BS
 import Network.HTTP.Types
 import Lucid
 import Text.Heredoc (there, here)
@@ -51,6 +52,27 @@ html :: ( MonadApp m
 html mLink content = htmlLight status200 $ mainTemplate mLink content
 
 
+
+modulePre :: LT.Text
+modulePre = [here|if (typeof module === 'object') {window.module = module; module = undefined;}|]
+
+
+jquery :: LT.Text
+jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
+
+
+semanticJs :: LT.Text
+semanticJs = [there|./frontend/bower_components/semantic/dist/semantic.min.js|]
+
+
+modulePost :: LT.Text
+modulePost = [here|if (window.module) module = window.module;|]
+
+
+semanticCss :: LT.Text
+semanticCss = [there|./frontend/bower_components/semantic/dist/semantic.min.css|]
+
+
 masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
@@ -60,18 +82,11 @@ masterPage =
                            meta_ [httpEquiv_ "X-UA-Compatible", content_ "IE=edge,chrome=1"]
                            meta_ [name_ "viewport", content_ "width-device-width, initial-scale=1.0, maximum-scale=1.0"]
            , styles = do
-               deploy M.Css Remote ("/vendor/semantic/dist/semantic.min.css" :: T.Text)
+               deploy M.Css Inline semanticCss
                inlineStyles
            , bodyScripts = do
-               let modulePre :: LT.Text
-                   modulePre = [here|if (typeof module === 'object') {window.module = module; module = undefined;}
-                                    |]
                deploy M.JavaScript Inline modulePre
-               let jquery :: LT.Text
-                   jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
                deploy M.JavaScript Inline jquery
-               let semanticJs :: LT.Text
-                   semanticJs = [there|./frontend/bower_components/semantic/dist/semantic.min.js|]
                deploy M.JavaScript Inline semanticJs
                inlineScripts
            }
@@ -87,9 +102,6 @@ masterPage =
       let elm :: LT.Text
           elm = [there|./frontend/dist/Main.min.js|]
       deploy M.JavaScript Inline elm
-      let modulePost :: LT.Text
-          modulePost = [here|if (window.module) module = window.module;
-                            |]
       deploy M.JavaScript Inline modulePost
       let flags :: LT.Text
           flags =[here| var host_ = "http://localhost:3000";

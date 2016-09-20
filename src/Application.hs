@@ -37,25 +37,25 @@ authorize _ ss
   | otherwise = throwM NeedsAuth
 
 
-securityMiddleware :: MonadApp m => MiddlewareT m
+securityMiddleware :: MiddlewareT AppM
 securityMiddleware app req resp = do
   extractAuth authorize req routes
   app req resp
 
 
-contentMiddleware :: MonadApp m => MiddlewareT m
+contentMiddleware :: MiddlewareT AppM
 contentMiddleware =
   route routes
 
 
-staticMiddleware :: MonadApp m => MiddlewareT m
-staticMiddleware app req respond = do
-    let fileRequested = T.unpack
-                      . T.intercalate "/"
-                      $ pathInfo req
-    basePath <- envStatic <$> ask
-    let file = basePath ++ "/" ++ fileRequested
-    fileExists <- liftIO (doesFileExist file)
-    if fileExists
-    then respond $ responseFile status200 [] file Nothing
-    else app req respond
+-- staticMiddleware :: MonadApp m => MiddlewareT m
+-- staticMiddleware app req respond = do
+--     let fileRequested = T.unpack
+--                       . T.intercalate "/"
+--                       $ pathInfo req
+--     basePath <- envStatic <$> ask
+--     let file = basePath ++ "/" ++ fileRequested
+--     fileExists <- liftIO (doesFileExist file)
+--     if fileExists
+--     then respond $ responseFile status200 [] file Nothing
+--     else app req respond

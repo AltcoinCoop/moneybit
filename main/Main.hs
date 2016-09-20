@@ -15,7 +15,6 @@ import           Options.Applicative
 import qualified Data.Yaml as Y
 import qualified Data.Aeson.Types as A
 import Network.Wai.Trans
-import Network.Wai.Middleware.Static
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip
 import Network.Wai.Middleware.RequestLogger
@@ -56,8 +55,7 @@ main = do
 entry :: Int -> Env -> Mutable -> IO ()
 entry p env mut =
   run p $
-      staticPolicy (noDots >-> addBase "static")
-    . gzip def
+      gzip def
     . logStdoutDev
     . application
     $ failApp
@@ -65,6 +63,5 @@ entry p env mut =
     application = runMiddlewareT (runAppM env mut) $
         contentMiddleware
       . securityMiddleware
-      . staticMiddleware
     failApp _ respond =
       respond $ textOnly "404!" status404 []

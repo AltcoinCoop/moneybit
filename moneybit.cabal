@@ -27,6 +27,7 @@ Library
                       , data-default
                       , directory
                       , exceptions
+                      , file-embed
                       , heredoc
                       , hostname-validate
                       , http-client
@@ -49,7 +50,6 @@ Library
                       , wai
                       , wai-extra
                       , wai-middleware-content-type
-                      , wai-middleware-static
                       , wai-transformers
                       , webpage
 

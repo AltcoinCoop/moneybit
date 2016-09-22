@@ -5,6 +5,7 @@
 
 
 ![](https://cdn.rawgit.com/moneybit/middleend/master/demo.gif)
+(full video [here](http://webm.land/media/AKu0.webm))
 
 
 ## Running Client (linux)

@@ -77,6 +77,10 @@ clipboardJs :: LT.Text
 clipboardJs = [there|./frontend/bower_components/clipboard/dist/clipboard.min.js|]
 
 
+qriousJs :: LT.Text
+qriousJs = [there|./frontend/bower_components/qrious/dist/umd/qrious.min.js|]
+
+
 masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
@@ -91,6 +95,7 @@ masterPage =
            , bodyScripts = do
                deploy M.JavaScript Inline modulePre
                deploy M.JavaScript Inline jquery
+               deploy M.JavaScript Inline qriousJs
                deploy M.JavaScript Inline semanticJs
                deploy M.JavaScript Inline clipboardJs
                inlineScripts

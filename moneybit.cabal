@@ -12,7 +12,7 @@ Build-Type:             Simple
 Library
   Default-Language:     Haskell2010
   HS-Source-Dirs:       src
-  GHC-Options:          -Wall -static -optl-static -optl-pthread
+  GHC-Options:          -Wall
   Exposed-Modules:      Server
                         Application
                         Application.Types
@@ -56,7 +56,7 @@ Library
 Executable moneybit
   Default-Language:     Haskell2010
   HS-Source-Dirs:       main
-  GHC-Options:          -Wall -threaded -static -optl-static -optl-pthread
+  GHC-Options:          -Wall -threaded -with-rtsopts=-T
   Main-Is:              Main.hs
   Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5
@@ -66,6 +66,7 @@ Executable moneybit
                       , bytestring
                       , data-default
                       , directory
+                      , ekg
                       , exceptions
                       , filepath
                       , http-types

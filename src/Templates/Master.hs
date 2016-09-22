@@ -73,6 +73,10 @@ semanticCss :: LT.Text
 semanticCss = [there|./frontend/bower_components/semantic/dist/semantic.min.css|]
 
 
+clipboardJs :: LT.Text
+clipboardJs = [there|./frontend/bower_components/clipboard/dist/clipboard.min.js|]
+
+
 masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
@@ -88,6 +92,7 @@ masterPage =
                deploy M.JavaScript Inline modulePre
                deploy M.JavaScript Inline jquery
                deploy M.JavaScript Inline semanticJs
+               deploy M.JavaScript Inline clipboardJs
                inlineScripts
            }
   where
@@ -104,17 +109,18 @@ masterPage =
       deploy M.JavaScript Inline elm
       deploy M.JavaScript Inline modulePost
       let flags :: LT.Text
-          flags =[here| var host_ = "http://localhost:3000";
-                        var flags_ = {
-                          "wallets" : [
-                            {
-                              "name" : "foo"
-                            },
-                            {
-                              "name" : "bar"
-                            }
-                          ]
-                        };
+          flags =[here|
+var host_ = "http://localhost:3000";
+var flags_ = {
+  "wallets" : [
+    {
+      "name" : "foo"
+    },
+    {
+      "name" : "bar"
+    }
+  ]
+};
                       |]
       deploy M.JavaScript Inline flags
       let init :: LT.Text

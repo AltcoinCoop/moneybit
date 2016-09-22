@@ -22,6 +22,7 @@ import Network.HTTP.Types
 import Web.Routes.Nested
 
 import System.Directory
+import System.Remote.Monitoring
 
 import Data.Url
 import Data.Maybe
@@ -53,7 +54,8 @@ main = do
 
 -- | Entry point, post options parsing
 entry :: Int -> Env -> Mutable -> IO ()
-entry p env mut =
+entry p env mut = do
+  forkServer "localhost" (p-1)
   run p $
       gzip def
     . logStdoutDev

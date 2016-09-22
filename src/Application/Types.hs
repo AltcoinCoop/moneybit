@@ -23,7 +23,7 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Base64 as BS64
 import Network.HTTP.Client (Request)
 
-import Crypto.Saltine.Core.Box (PublicKey)
+import Crypto.Saltine.Core.Box (PublicKey, SecretKey)
 import Crypto.Saltine.Class as NaCl
 
 
@@ -36,6 +36,7 @@ data Env = Env
   { envAuthority :: UrlAuthority
   , envWrkDir    :: FilePath
   , envCertPk    :: PublicKey
+  , envCertSk    :: SecretKey
   } deriving (Eq)
 
 instance Show Env where
@@ -43,6 +44,7 @@ instance Show Env where
     [ "Env:  - host: " ++ showUrlAuthority envAuthority
     , "      - dir:  " ++ envWrkDir
     , "      - cert public key: " ++ show (BS64.encode $ NaCl.encode envCertPk)
+    , "      - cert secret key: <###>"
     ]
 
 

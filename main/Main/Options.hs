@@ -134,9 +134,17 @@ digestAppOpts AppOpts
   --          LBS.writeFile c $ A.encodePretty (def :: Config)
   --          pure def
 
+  (pk,sk) <- case ( NaCl.decode $ unUnEncode $ fst certKeypair
+                  , NaCl.decode $ unUnEncode $ snd certKeypair
+                  ) of
+               (Just pk', Just sk') -> pure (pk',sk')
+               xs -> error "impossible"
+
   pure ( Env
            { envAuthority = a
            , envWrkDir = wrkDir
+           , envCertPk = pk
+           , envCertSk = sk
            }
        , undefined -- FIXME
        )
@@ -150,8 +158,14 @@ runAppMTest xs = do
 
 
 
-randKeypair :: (String,String)
-randKeypair = $(do (pk,sk) <- runIO newKeypair
+unUnEncode :: String -> BS.ByteString
+unUnEncode x = case BS64.decode . T.encodeUtf8 $ T.pack x of
+  Right y -> y
+  _       -> error "impossible"
+
+
+certKeypair :: (String,String)
+certKeypair = $(do (pk,sk) <- runIO newKeypair
                    let unEncode :: BS.ByteString -> String
                        unEncode = T.unpack . T.decodeUtf8 . BS64.encode
                        xs = ( unEncode $ NaCl.encode pk

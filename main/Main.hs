@@ -48,6 +48,7 @@ main = do
       cliOpts = def <> commandOpts
 
   (env,cfg) <- digestAppOpts cliOpts
+  print env
   entry (fromJust $ port cliOpts) env undefined -- (mkMutable cfg)
 
 

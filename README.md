@@ -4,7 +4,7 @@
 > `48iZ4NPuYsTfZEiYYXzKbTeZotimqEsfUB2LgykPAksdHkz4daHT46ZFsnkwRygxu2KR3KmkhpLvNQMtszjC3TsVFMLSNwK`
 
 
-![](https://github.com/moneybit/middleend/blob/master/demo.gif)
+![](https://cdn.rawgit.com/moneybit/middleend/master/demo.gif)
 
 
 ## Running Client (linux)

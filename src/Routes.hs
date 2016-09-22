@@ -16,9 +16,13 @@ import Web.Routes.Nested
 import Network.Wai.Trans
 import Network.HTTP.Types
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base58 as BS58
 import qualified Data.ByteString.Lazy as LBS
+import Control.Monad.IO.Class
 import Data.FileEmbed (embedDir)
+import Crypto.Random (getRandomBytes)
 
 
 routes :: RouterT (MiddlewareT AppM) sec AppM ()
@@ -31,6 +35,7 @@ routes = do
     match (l_ "send"         </> o_) (\w -> action homeHandle)
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "transactions" </> o_) (\w -> action homeHandle)
+  match (l_ "newPaymentId" </> o_) (action newPaymentIdHandle)
   matchAny (action notFoundHandle)
   match (l_ "themes" </> l_ "default" </> l_ "assets" </> l_ "fonts" </> word </> o_)
     respondIcon
@@ -51,6 +56,12 @@ icons = $(embedDir "./frontend/bower_components/semantic/dist/themes/default/ass
 
 homeHandle :: ActionT AppM ()
 homeHandle = get $ html (Just AppWallets) ""
+
+
+newPaymentIdHandle :: ActionT AppM ()
+newPaymentIdHandle = get $ do
+  xs <- liftIO $ getRandomBytes 32
+  json $ T.decodeUtf8 $ BS58.encodeBase58 BS58.bitcoinAlphabet xs
 
 notFoundHandle :: ActionT AppM ()
 notFoundHandle = get $ do

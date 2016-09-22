@@ -1,10 +1,19 @@
 # MoneyBit Monero Wallet
 
+## WARNING
+
+This app isn't functional, nor has it been well tested or audited for security
+vulnerabilities. __Use at your own risk!__
+
+
+-------------
+
 > __Donation address__:
 > `48iZ4NPuYsTfZEiYYXzKbTeZotimqEsfUB2LgykPAksdHkz4daHT46ZFsnkwRygxu2KR3KmkhpLvNQMtszjC3TsVFMLSNwK`
 
 
 ![](https://cdn.rawgit.com/moneybit/middleend/master/demo.gif)
+
 (full video [here](http://webm.land/media/AKu0.webm))
 
 

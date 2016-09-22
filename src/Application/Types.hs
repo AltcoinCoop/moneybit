@@ -20,7 +20,11 @@ import Control.Monad.Logger
 import Control.Monad.State
 import GHC.Generics
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Base64 as BS64
 import Network.HTTP.Client (Request)
+
+import Crypto.Saltine.Core.Box (PublicKey)
+import Crypto.Saltine.Class as NaCl
 
 
 -- * Infrastructure of the App
@@ -31,7 +35,15 @@ import Network.HTTP.Client (Request)
 data Env = Env
   { envAuthority :: UrlAuthority
   , envWrkDir    :: FilePath
-  } deriving (Show, Eq)
+  , envCertPk    :: PublicKey
+  } deriving (Eq)
+
+instance Show Env where
+  show Env{..} = unlines
+    [ "Env:  - host: " ++ showUrlAuthority envAuthority
+    , "      - dir:  " ++ envWrkDir
+    , "      - cert public key: " ++ show (BS64.encode $ NaCl.encode envCertPk)
+    ]
 
 
 -- ** Stateful Data

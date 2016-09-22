@@ -81,6 +81,21 @@ qriousJs :: LT.Text
 qriousJs = [there|./frontend/bower_components/qrious/dist/umd/qrious.min.js|]
 
 
+cryptocoins :: LT.Text
+cryptocoins = [there|./frontend/deps/cryptocoins/cryptocoins.css|]
+
+cryptocoinsColors :: LT.Text
+cryptocoinsColors = [there|./frontend/deps/cryptocoins/cryptocoins-colors.css|]
+
+
+scryptJs :: LT.Text
+scryptJs = [there|./frontend/bower_components/js-scrypt/browser/scrypt.js|]
+
+
+naclJs :: LT.Text
+naclJs = [there|./frontend/bower_components/js-nacl/lib/nacl_factory.js|]
+
+
 masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
@@ -91,6 +106,8 @@ masterPage =
                            meta_ [name_ "viewport", content_ "width-device-width, initial-scale=1.0, maximum-scale=1.0"]
            , styles = do
                deploy M.Css Inline semanticCss
+               deploy M.Css Inline cryptocoins
+               deploy M.Css Inline cryptocoinsColors
                inlineStyles
            , bodyScripts = do
                deploy M.JavaScript Inline modulePre
@@ -98,6 +115,8 @@ masterPage =
                deploy M.JavaScript Inline qriousJs
                deploy M.JavaScript Inline semanticJs
                deploy M.JavaScript Inline clipboardJs
+               deploy M.JavaScript Inline scryptJs
+               deploy M.JavaScript Inline naclJs
                inlineScripts
            }
   where

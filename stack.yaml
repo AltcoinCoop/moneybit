@@ -51,6 +51,7 @@ extra-deps:
   - wai-transformers-0.0.7
   - HList-0.4.2.0
   - saltine-0.0.0.4
+  - base58-bytestring-0.1.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}

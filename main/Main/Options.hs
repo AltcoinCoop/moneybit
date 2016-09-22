@@ -3,6 +3,7 @@
   , NamedFieldPuns
   , RecordWildCards
   , CPP
+  , TemplateHaskell
   #-}
 
 module Main.Options where
@@ -13,6 +14,10 @@ import           Options.Applicative
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as A
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base64 as BS64
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import Data.Default
 import Data.Monoid
 import Data.Url
@@ -28,6 +33,9 @@ import System.FilePath
 import qualified System.Win32 as Win32
 #endif
 import GHC.Generics
+import Crypto.Saltine.Core.Box (Keypair, newKeypair)
+import Crypto.Saltine.Class as NaCl
+import Language.Haskell.TH (runIO)
 
 
 -- | Application-wide options
@@ -139,3 +147,15 @@ runAppMTest :: AppM a -> IO a
 runAppMTest xs = do
   (e,c) <- digestAppOpts def
   runAppM e (mkMutable c) xs
+
+
+
+randKeypair :: (String,String)
+randKeypair = $(do (pk,sk) <- runIO newKeypair
+                   let unEncode :: BS.ByteString -> String
+                       unEncode = T.unpack . T.decodeUtf8 . BS64.encode
+                       xs = ( unEncode $ NaCl.encode pk
+                            , unEncode $ NaCl.encode sk
+                            )
+                   [|xs|]
+               )

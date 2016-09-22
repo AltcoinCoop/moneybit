@@ -23,7 +23,10 @@ Library
   Build-Depends:        base >= 4.8 && < 5
                       , aeson
                       , aeson-pretty
+                      , base58-bytestring
+                      , base64-bytestring
                       , bytestring
+                      , cryptonite
                       , data-default
                       , directory
                       , exceptions
@@ -63,6 +66,7 @@ Executable moneybit
                       , moneybit
                       , aeson
                       , aeson-pretty
+                      , base64-bytestring
                       , bytestring
                       , data-default
                       , directory
@@ -73,6 +77,8 @@ Executable moneybit
                       , mtl
                       , nested-routes
                       , optparse-applicative
+                      , saltine
+                      , template-haskell
                       , text
                       , urlpath
                       , wai-extra

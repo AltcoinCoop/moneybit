@@ -107,6 +107,31 @@ instance ToLocation AppLinks Abs File where
   toLocation AppWallets = fromPath <$> toPath AppWallets
 
 
+data AssetLinks
+  = JQuery
+  | SemanticCss
+  | SemanticJs
+  | Qrious
+  | CryptoCoinsCss
+  | CryptoCoinsColorsCss
+
+instance ToPath AssetLinks Abs File where
+  toPath JQuery      = parseAbsFile "/static/jquery"
+  toPath SemanticCss = parseAbsFile "/static/semantic/semantic"
+  toPath SemanticJs  = parseAbsFile "/static/semantic/semantic"
+  toPath Qrious      = parseAbsFile "/static/qrious"
+  toPath CryptoCoinsCss = parseAbsFile "/static/cryptocoins/cryptocoins"
+  toPath CryptoCoinsColorsCss = parseAbsFile "/static/cryptocoins/cryptocoins-colors"
+
+instance ToLocation AssetLinks Abs File where
+  toLocation JQuery      = (addFileExt "min.js" . fromPath) <$> toPath JQuery
+  toLocation SemanticCss = (addFileExt "css"    . fromPath) <$> toPath SemanticCss
+  toLocation SemanticJs  = (addFileExt "js"     . fromPath) <$> toPath SemanticJs
+  toLocation Qrious      = (addFileExt "js"     . fromPath) <$> toPath Qrious
+  toLocation CryptoCoinsCss = (addFileExt "css" . fromPath) <$> toPath CryptoCoinsCss
+  toLocation CryptoCoinsColorsCss = (addFileExt "css" . fromPath) <$> toPath CryptoCoinsColorsCss
+
+
 
 -- * Exceptions
 

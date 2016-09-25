@@ -39,6 +39,7 @@ resolver: nightly-2016-05-20
 # will not be run. This is useful for tweaking upstream packages.
 packages:
   - '.'
+  - '/home/athan/dev/nested-routes'
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
@@ -46,7 +47,7 @@ extra-deps:
   - nested-routes-7.2.2
   - poly-arity-0.0.7
   - pred-trie-0.5.1
-  - wai-middleware-content-type-0.4.1
+  - wai-middleware-content-type-0.5.0.1
   - wai-middleware-verbs-0.3.2
   - wai-transformers-0.0.7
   - HList-0.4.2.0

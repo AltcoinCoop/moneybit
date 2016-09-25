@@ -20,12 +20,14 @@ import qualified Data.ByteString as BS
 import Network.HTTP.Types
 import Lucid
 import Text.Heredoc (there, here)
+import Path.Extended
 
 import qualified Data.HashMap.Strict as HM
 import Data.Monoid
 import Data.Default
 import Data.Markup as M
 import Control.Monad.Trans
+import Control.Monad.Morph
 import Control.Monad.Reader
 import Control.Monad.State (modify)
 
@@ -57,35 +59,15 @@ modulePre :: LT.Text
 modulePre = [here|if (typeof module === 'object') {window.module = module; module = undefined;}|]
 
 
-jquery :: LT.Text
-jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
-
-
-semanticJs :: LT.Text
-semanticJs = [there|./frontend/bower_components/semantic/dist/semantic.min.js|]
-
 
 modulePost :: LT.Text
 modulePost = [here|if (window.module) module = window.module;|]
 
 
-semanticCss :: LT.Text
-semanticCss = [there|./frontend/bower_components/semantic/dist/semantic.min.css|]
-
 
 clipboardJs :: LT.Text
 clipboardJs = [there|./frontend/bower_components/clipboard/dist/clipboard.min.js|]
 
-
-qriousJs :: LT.Text
-qriousJs = [there|./frontend/bower_components/qrious/dist/umd/qrious.min.js|]
-
-
-cryptocoins :: LT.Text
-cryptocoins = [there|./frontend/deps/cryptocoins/cryptocoins.css|]
-
-cryptocoinsColors :: LT.Text
-cryptocoinsColors = [there|./frontend/deps/cryptocoins/cryptocoins-colors.css|]
 
 
 scryptJs :: LT.Text
@@ -105,15 +87,25 @@ masterPage =
                            meta_ [httpEquiv_ "X-UA-Compatible", content_ "IE=edge,chrome=1"]
                            meta_ [name_ "viewport", content_ "width-device-width, initial-scale=1.0, maximum-scale=1.0"]
            , styles = do
-               deploy M.Css Inline semanticCss
-               deploy M.Css Inline cryptocoins
-               deploy M.Css Inline cryptocoinsColors
+               host <- envAuthority <$> lift ask
+               hoist (`runAbsoluteUrlT` host) $ do
+                  semanticCss <- lift (toLocation SemanticCss)
+                  deploy M.Css Remote semanticCss
+                  cryptocoins <- lift (toLocation CryptoCoinsCss)
+                  deploy M.Css Remote cryptocoins
+                  cryptocoinsColors <- lift (toLocation CryptoCoinsColorsCss)
+                  deploy M.Css Remote cryptocoinsColors
                inlineStyles
            , bodyScripts = do
+               host <- envAuthority <$> lift ask
                deploy M.JavaScript Inline modulePre
-               deploy M.JavaScript Inline jquery
-               deploy M.JavaScript Inline qriousJs
-               deploy M.JavaScript Inline semanticJs
+               hoist (`runAbsoluteUrlT` host) $ do
+                  jquery <- lift (toLocation JQuery)
+                  deploy M.JavaScript Remote jquery
+                  qrious <- lift (toLocation Qrious)
+                  deploy M.JavaScript Remote qrious
+                  semanticJs <- lift (toLocation SemanticJs)
+                  deploy M.JavaScript Remote semanticJs
                deploy M.JavaScript Inline clipboardJs
                deploy M.JavaScript Inline scryptJs
                deploy M.JavaScript Inline naclJs

@@ -68,3 +68,6 @@ entry p env mut = do
       . securityMiddleware
     failApp _ respond =
       respond $ textOnly "404!" status404 []
+   -- otherLogger app req resp = do
+   --   print $ pathInfo req
+   --   app req resp

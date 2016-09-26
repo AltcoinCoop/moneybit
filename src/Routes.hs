@@ -59,7 +59,6 @@ routes = do
           let (_,e) = T.breakOnEnd "." $ T.pack f
           in  bytestring (Other e) $ LBS.fromStrict b
       matchOn Css "cryptocoins" $ LT.encodeUtf8 cryptocoins
-      matchOn Css "cryptocoins-colors" $ LT.encodeUtf8 cryptocoinsColors
     matchGroup (l_ "semantic" </> o_) $ do
       match (l_ "semantic" </> o_) $ action $ get $ do
         bytestring Css        $ LT.encodeUtf8 semanticCss
@@ -107,9 +106,6 @@ qriousJs = [there|./frontend/bower_components/qrious/dist/umd/qrious.min.js|]
 
 cryptocoins :: LT.Text
 cryptocoins = [there|./frontend/deps/cryptocoins/cryptocoins.css|]
-
-cryptocoinsColors :: LT.Text
-cryptocoinsColors = [there|./frontend/deps/cryptocoins/cryptocoins-colors.css|]
 
 cryptocoinsIcons :: [(FilePath, BS.ByteString)]
 cryptocoinsIcons = $(embedDir "./frontend/deps/cryptocoins/fonts/")

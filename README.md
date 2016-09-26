@@ -14,7 +14,7 @@ vulnerabilities. __Use at your own risk!__
 
 ![](https://cdn.rawgit.com/moneybit/middleend/master/demo.gif)
 
-(full video [here](http://webm.land/media/AKu0.webm))
+(full video [here](http://webm.land/media/jKMC.webm))
 
 
 ## Running Client (linux)

@@ -19,6 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.Logger
 import Control.Monad.State
 import GHC.Generics
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Base64 as BS64
 import Network.HTTP.Client (Request)
@@ -144,3 +145,9 @@ data ProcessException
   = NotEnoughHandles String
   deriving (Show, Eq, Generic)
 instance Exception ProcessException
+
+data ApiException
+  = TranscodeDecodeError LBS.ByteString
+  | TranscodeDecodeByteError BS.ByteString
+  deriving (Show, Eq, Generic)
+instance Exception ApiException

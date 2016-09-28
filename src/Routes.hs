@@ -5,14 +5,17 @@
   , DataKinds
   , TemplateHaskell
   , QuasiQuotes
+  , RecordWildCards
   #-}
 
 module Routes where
 
+import Api
 import Application.Types
 import Templates.Master
 import Pages.NotFound
 
+import Data.Aeson as A hiding (json)
 import Web.Routes.Nested
 import Network.Wai.Trans
 import Network.HTTP.Types
@@ -21,11 +24,14 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base16 as BS16
+import qualified Data.ByteString.Base64 as BS64
 import qualified Data.ByteString.Base58 as BS58
 import qualified Data.ByteString.Lazy as LBS
 import Control.Monad.IO.Class
 import Control.Arrow (second)
 import Control.Monad (forM_)
+import Control.Monad.Catch
 import Data.FileEmbed (embedDir)
 import Crypto.Random (getRandomBytes)
 import Text.Heredoc (there, here)
@@ -43,7 +49,10 @@ routes = do
     match (l_ "send"         </> o_) (\w -> action homeHandle)
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "transactions" </> o_) (\w -> action homeHandle)
+
+  -- Utils
   match (l_ "newPaymentId" </> o_) (action newPaymentIdHandle)
+  match (l_ "transcode" </> o_)    transcodeHandle
 
   -- Assets
   matchGroup (l_ "static" </> o_) $ do
@@ -128,6 +137,37 @@ newPaymentIdHandle :: ActionT AppM ()
 newPaymentIdHandle = get $ do
   xs <- liftIO $ getRandomBytes 32
   json $ T.decodeUtf8 $ BS58.encodeBase58 BS58.bitcoinAlphabet xs
+
+
+
+
+
+
+transcodeHandle :: MiddlewareT AppM
+transcodeHandle app req resp =
+  let mid = action $ post $ do
+        b <- liftIO $ strictRequestBody req
+        case A.decode b of
+          Nothing -> throwM $ TranscodeDecodeError b
+          Just TranscodeRequest{..} -> do
+            i <- case transcodeFrom of
+                   Base16 -> case BS16.decode transcodeInput of
+                     (x,e) | e == BS.empty -> pure x
+                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
+                   Base64 -> case BS64.decode transcodeInput of
+                     Right x -> pure x
+                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
+                   Base58 -> case BS58.decodeBase58 BS58.bitcoinAlphabet transcodeInput of
+                     Nothing -> throwM $ TranscodeDecodeByteError transcodeInput
+                     Just x  -> pure x
+            let o = case transcodeTo of
+                  Base16 -> BS16.encode i
+                  Base64 -> BS64.encode i
+                  Base58 -> BS58.encodeBase58 BS58.bitcoinAlphabet i
+            json $ T.decodeUtf8 o
+  in  mid app req resp
+
+
 
 notFoundHandle :: ActionT AppM ()
 notFoundHandle = get $ do

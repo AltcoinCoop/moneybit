@@ -45,11 +45,15 @@ routes = do
   match (l_ "config" </> o_) (action homeHandle)
   match (l_ "wallets" </> o_) (action homeHandle)
   matchGroup (l_ "wallet" </> word </> o_) $ do
+    matchHere (\w -> action homeHandle)
     match (l_ "overview"     </> o_) (\w -> action homeHandle)
     match (l_ "send"         </> o_) (\w -> action homeHandle)
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "transactions" </> o_) (\w -> action homeHandle)
     match (l_ "seeds"        </> o_) (\w -> action homeHandle)
+
+  match (l_ "not-found" </> o_) (action homeHandle) -- :v
+  matchAny (action notFoundHandle)
 
   -- Utils
   match (l_ "newPaymentId" </> o_) (action newPaymentIdHandle)
@@ -86,7 +90,6 @@ routes = do
     matchOn JavaScript "nacl"      $ LT.encodeUtf8 naclJs
     matchOn JavaScript "zxcvbn"    $ LT.encodeUtf8 zxcvbnJs
 
-  matchAny (action notFoundHandle)
 
 
 

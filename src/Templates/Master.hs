@@ -65,19 +65,6 @@ modulePost = [here|if (window.module) module = window.module;|]
 
 
 
-clipboardJs :: LT.Text
-clipboardJs = [there|./frontend/bower_components/clipboard/dist/clipboard.min.js|]
-
-
-
-scryptJs :: LT.Text
-scryptJs = [there|./frontend/bower_components/js-scrypt/browser/scrypt.js|]
-
-
-naclJs :: LT.Text
-naclJs = [there|./frontend/bower_components/js-nacl/lib/nacl_factory.js|]
-
-
 masterPage :: MonadApp m => WebPage (HtmlT m ()) T.Text
 masterPage =
   let page :: MonadApp m => WebPage (HtmlT m ()) T.Text
@@ -106,9 +93,14 @@ masterPage =
                   deploy M.JavaScript Remote qrious
                   semanticJs <- lift (toLocation SemanticJs)
                   deploy M.JavaScript Remote semanticJs
-               deploy M.JavaScript Inline clipboardJs
-               deploy M.JavaScript Inline scryptJs
-               deploy M.JavaScript Inline naclJs
+                  clipboardJs <- lift (toLocation ClipboardJs)
+                  deploy M.JavaScript Remote clipboardJs
+                  scryptJs <- lift (toLocation ScryptJs)
+                  deploy M.JavaScript Remote scryptJs
+                  naclJs <- lift (toLocation NaClJs)
+                  deploy M.JavaScript Remote naclJs
+                  zxcvbnJs <- lift (toLocation ZxcvbnJs)
+                  deploy M.JavaScript Remote zxcvbnJs
                inlineScripts
            }
   where

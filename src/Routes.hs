@@ -32,7 +32,7 @@ import Control.Monad.IO.Class
 import Control.Arrow (second)
 import Control.Monad (forM_)
 import Control.Monad.Catch
-import Data.FileEmbed (embedDir)
+import Data.FileEmbed (embedFile, embedDir)
 import Crypto.Random (getRandomBytes)
 import Text.Heredoc (there, here)
 
@@ -49,10 +49,15 @@ routes = do
     match (l_ "send"         </> o_) (\w -> action homeHandle)
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "transactions" </> o_) (\w -> action homeHandle)
+    match (l_ "seeds"        </> o_) (\w -> action homeHandle)
 
   -- Utils
   match (l_ "newPaymentId" </> o_) (action newPaymentIdHandle)
   match (l_ "transcode" </> o_)    transcodeHandle
+
+  -- Images
+  matchGroup (l_ "images" </> o_) $ do
+    matchOn (Other "png") "seeds_stripe" $ LBS.fromStrict seedsStripePng
 
   -- Assets
   matchGroup (l_ "static" </> o_) $ do
@@ -76,6 +81,10 @@ routes = do
         forM_ icons $ \(f,b) ->
           let (_,e) = T.breakOnEnd "." $ T.pack f
           in  bytestring (Other e) $ LBS.fromStrict b
+    matchOn JavaScript "clipboard" $ LT.encodeUtf8 clipboardJs
+    matchOn JavaScript "scrypt"    $ LT.encodeUtf8 scryptJs
+    matchOn JavaScript "nacl"      $ LT.encodeUtf8 naclJs
+    matchOn JavaScript "zxcvbn"    $ LT.encodeUtf8 zxcvbnJs
 
   matchAny (action notFoundHandle)
 
@@ -125,6 +134,23 @@ cryptocoinsSvgs = $(embedDir "./frontend/deps/cryptocoins/SVG/")
 
 jquery :: LT.Text
 jquery = [there|./frontend/bower_components/jquery/dist/jquery.min.js|]
+
+clipboardJs :: LT.Text
+clipboardJs = [there|./frontend/bower_components/clipboard/dist/clipboard.min.js|]
+
+scryptJs :: LT.Text
+scryptJs = [there|./frontend/bower_components/js-scrypt/browser/scrypt.js|]
+
+naclJs :: LT.Text
+naclJs = [there|./frontend/bower_components/js-nacl/lib/nacl_factory.js|]
+
+zxcvbnJs :: LT.Text
+zxcvbnJs = [there|./frontend/bower_components/zxcvbn/dist/zxcvbn.js|]
+
+
+seedsStripePng :: BS.ByteString
+seedsStripePng = $(embedFile "./frontend/images/seeds_stripe.png")
+
 
 
 -- Handles

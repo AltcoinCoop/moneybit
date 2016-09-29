@@ -115,6 +115,10 @@ data AssetLinks
   | Qrious
   | CryptoCoinsCss
   | CryptoCoinsColorsCss
+  | ClipboardJs
+  | ScryptJs
+  | NaClJs
+  | ZxcvbnJs
 
 instance ToPath AssetLinks Abs File where
   toPath JQuery      = parseAbsFile "/static/jquery"
@@ -123,6 +127,10 @@ instance ToPath AssetLinks Abs File where
   toPath Qrious      = parseAbsFile "/static/qrious"
   toPath CryptoCoinsCss = parseAbsFile "/static/cryptocoins/cryptocoins"
   toPath CryptoCoinsColorsCss = parseAbsFile "/static/cryptocoins/cryptocoins-colors"
+  toPath ClipboardJs = parseAbsFile "/static/clipboard"
+  toPath ScryptJs    = parseAbsFile "/static/scrypt"
+  toPath NaClJs      = parseAbsFile "/static/nacl"
+  toPath ZxcvbnJs    = parseAbsFile "/static/zxcvbn"
 
 instance ToLocation AssetLinks Abs File where
   toLocation JQuery      = (addFileExt "min.js" . fromPath) <$> toPath JQuery
@@ -131,6 +139,10 @@ instance ToLocation AssetLinks Abs File where
   toLocation Qrious      = (addFileExt "js"     . fromPath) <$> toPath Qrious
   toLocation CryptoCoinsCss = (addFileExt "css" . fromPath) <$> toPath CryptoCoinsCss
   toLocation CryptoCoinsColorsCss = (addFileExt "css" . fromPath) <$> toPath CryptoCoinsColorsCss
+  toLocation ClipboardJs = (addFileExt "js"     . fromPath) <$> toPath ClipboardJs
+  toLocation ScryptJs    = (addFileExt "js"     . fromPath) <$> toPath ScryptJs
+  toLocation NaClJs      = (addFileExt "js"     . fromPath) <$> toPath NaClJs
+  toLocation ZxcvbnJs    = (addFileExt "js"     . fromPath) <$> toPath ZxcvbnJs
 
 
 

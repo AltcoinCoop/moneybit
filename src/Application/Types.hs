@@ -161,5 +161,8 @@ instance Exception ProcessException
 data ApiException
   = TranscodeDecodeError LBS.ByteString
   | TranscodeDecodeByteError BS.ByteString
+  | OpenDecodeError LBS.ByteString
+  | NewDecodeError LBS.ByteString
+  | RecoverDecodeError LBS.ByteString
   deriving (Show, Eq, Generic)
 instance Exception ApiException

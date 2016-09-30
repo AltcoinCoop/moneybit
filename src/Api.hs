@@ -1,26 +1,26 @@
 {-# LANGUAGE
     OverloadedStrings
+  , RecordWildCards
   #-}
 
 module Api where
 
 import Data.Aeson as A
 import Data.Aeson.Types (typeMismatch)
+import Data.Time (UTCTime)
+import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as BS
 
 
+
+-- * Transcoding
 
 data SupportedBases
   = Base16
   | Base64
   | Base58
   deriving (Show, Eq)
-
-instance ToJSON SupportedBases where
-  toJSON Base16 = String "base16"
-  toJSON Base64 = String "base64"
-  toJSON Base58 = String "base58"
 
 instance FromJSON SupportedBases where
   parseJSON (String s) | s == "base16" = pure Base16
@@ -42,3 +42,149 @@ instance FromJSON TranscodeRequest where
                      <*> o .: "to"
                      <*> (T.encodeUtf8 <$> o .: "input")
   parseJSON x = typeMismatch "TranscodeRequest" x
+
+
+-- * New
+
+data NewRequest = NewRequest
+  { newName     :: T.Text
+  , newPassword :: T.Text -- ^ Plaintext
+  , newLanguage :: T.Text
+  } deriving (Show, Eq)
+
+instance FromJSON NewRequest where
+  parseJSON (Object o) =
+    NewRequest <$> o .: "name"
+               <*> o .: "password"
+               <*> o .: "language"
+  parseJSON x = typeMismatch "NewRequest" x
+
+
+-- * Recover
+
+data RecoverRequest = RecoverRequest
+  { recoverName     :: T.Text
+  , recoverLanguage :: T.Text
+  , recoverMnemonic :: T.Text
+  } deriving (Show, Eq)
+
+instance FromJSON RecoverRequest where
+  parseJSON (Object o) =
+    RecoverRequest <$> o .: "name"
+                   <*> o .: "language"
+                   <*> o .: "mnemonic"
+  parseJSON x = typeMismatch "RecoverRequest" x
+
+
+-- * Send
+
+data SendRequest = SendRequest
+  { sendRecipient :: T.Text -- FIXME address
+  , sendAmount    :: T.Text
+  , sendMixin     :: Int
+  , sendPaymentId :: Maybe T.Text -- FIXME integrated
+  } deriving (Show, Eq)
+
+instance FromJSON SendRequest where
+  parseJSON (Object o) =
+    SendRequest <$> o .: "recipient"
+                <*> o .: "amount"
+                <*> o .: "mixin"
+                <*> o .:? "paymentId"
+  parseJSON x = typeMismatch "SendRequest" x
+
+
+-- * Open
+
+data OpenRequest = OpenRequest
+  { openPassword        :: T.Text
+  , openSessionPassword :: T.Text
+  } deriving (Show, Eq)
+
+instance FromJSON OpenRequest where
+  parseJSON (Object o) =
+    OpenRequest <$> o .: "password"
+                <*> o .: "sessionPassword"
+  parseJSON x = typeMismatch "OpenRequest" x
+
+data OpenResponse = OpenResponse
+  { openBalance :: Balance
+  , openAddress :: T.Text
+  , openHistory :: [Transaction]
+  , openHistoryMore :: Bool
+  } deriving (Show, Eq)
+
+instance ToJSON OpenResponse where
+  toJSON OpenResponse{..} = object
+    [ "balance"     .= openBalance
+    , "address"     .= openAddress
+    , "history"     .= openHistory
+    , "historyMore" .= openHistoryMore
+    ]
+
+
+-- * History
+
+-- | Represents the filter data
+data HistoryRequest = HistoryRequest
+  { historySent      :: Bool
+  , historyReceived  :: Bool
+  , historyLabel     :: Maybe T.Text
+  , historyTxId      :: Maybe T.Text
+  , historyPaymentId :: Maybe T.Text
+  } deriving (Show, Eq)
+
+instance FromJSON HistoryRequest where
+  parseJSON (Object o) =
+    HistoryRequest <$> o .: "sent"
+                   <*> o .: "received"
+                   <*> o .:? "label"
+                   <*> o .:? "txId"
+                   <*> o .:? "paymentId"
+  parseJSON x = typeMismatch "HistoryRequest" x
+
+
+-- * Seeds
+
+data SeedsResponse = SeedsResponse
+  { seedsMnemonic :: T.Text
+  , seedsViewkey  :: T.Text
+  , seedsSpendkey :: T.Text
+  } deriving (Show, Eq)
+
+instance ToJSON SeedsResponse where
+  toJSON SeedsResponse{..} = object
+    [ "mnemonic" .= seedsMnemonic
+    , "viewkey"  .= seedsViewkey
+    , "spendkey" .= seedsSpendkey
+    ]
+
+
+-- * Misc
+
+data Balance = Balance
+  { balanceBalance  :: Double
+  , balanceUnlocked :: Double
+  } deriving (Show, Eq)
+
+instance ToJSON Balance where
+  toJSON Balance{..} = object
+    [ "balance" .= balanceBalance
+    , "unlocked" .= balanceUnlocked
+    ]
+
+
+data Transaction = Transaction
+  { transactionValue         :: Double
+  , transactionDate          :: UTCTime
+  , transactionTxId          :: T.Text
+  , transactionConfirmations :: Int
+  } deriving (Show, Eq)
+
+instance ToJSON Transaction where
+  toJSON Transaction{..} = object
+    [ "value"         .= transactionValue
+    , "date"          .= transactionDate
+    , "txId"          .= transactionTxId
+    , "confirmations" .= transactionConfirmations
+    ]

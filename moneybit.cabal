@@ -19,6 +19,7 @@ Library
                         Application.Types
                         Data.Json.RPC
                         Routes
+                        Routes.Assets
                         Pages.NotFound
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
@@ -49,6 +50,7 @@ Library
                       , process
                       , saltine
                       , text
+                      , time
                       , transformers
                       , unordered-containers
                       , urlpath

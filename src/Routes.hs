@@ -34,6 +34,8 @@ import Control.Monad.Catch
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay) -- FIXME
 
+import Data.Time
+
 
 
 routes :: RouterT (MiddlewareT AppM) sec AppM ()
@@ -45,14 +47,14 @@ routes = do
   matchGroup (l_ "wallet" </> word </> o_) $ do
     matchHere (\w -> action homeHandle)
     match (l_ "overview"     </> o_) (\w -> action homeHandle)
-    match (l_ "send"         </> o_) (\w -> action homeHandle) -- TODO api
+    match (l_ "send"         </> o_) sendHandle
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "transactions" </> o_) (\w -> action homeHandle)
     match (l_ "seeds"        </> o_) (\w -> action homeHandle)
     match (l_ "open"         </> o_) openHandle
     match (l_ "close"        </> o_) closeHandle
     match (l_ "integrated"   </> o_) integratedHandle
-    match (l_ "history"      </> o_) (\w -> action homeHandle) -- FIXME
+    match (l_ "history"      </> o_) historyHandle
     match (l_ "seeds"        </> o_) seedsHandle
   match (l_ "new"     </> o_) newHandle
   match (l_ "recover" </> o_) recoverHandle
@@ -162,6 +164,49 @@ seedsHandle w = action $ get $ json
     , seedsViewkey  = "asdf"
     , seedsSpendkey = "asdf"
     }
+
+
+historyHandle :: T.Text -> MiddlewareT AppM
+historyHandle w app req resp =
+  let mid = action $ do
+        get $ json HistoryResponse
+                { historyHistory =
+                    [ Transaction
+                        { transactionValue = 6
+                        , transactionTxId = "asdf"
+                        , transactionConfirmations = 4
+                        , transactionDate = UTCTime (ModifiedJulianDay 0) 0
+                        }
+                    ]
+                , historyMore = True
+                } -- FIXME
+        post $ do
+          b <- liftIO $ strictRequestBody req
+          case A.decode b of
+            Nothing -> throwM $ HistoryDecodeError b
+            Just HistoryRequest{..} -> do
+              liftIO $ threadDelay 1000000
+              json HistoryResponse
+                { historyHistory = []
+                , historyMore = True
+                } -- FIXME
+  in  mid app req resp
+
+
+
+sendHandle :: T.Text -> MiddlewareT AppM
+sendHandle w app req resp =
+  let mid = action $ do
+        homeHandle
+        post $ do
+          b <- liftIO $ strictRequestBody req
+          case A.decode b of
+            Nothing -> throwM $ SendDecodeError b
+            Just SendRequest{..} -> do
+              liftIO $ threadDelay 1000000
+              json ("asdf" :: T.Text) -- FIXME transaction Ids? addresses et. al?
+  in  mid app req resp
+
 
 
 -- Creation

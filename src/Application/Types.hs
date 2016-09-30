@@ -164,5 +164,7 @@ data ApiException
   | OpenDecodeError LBS.ByteString
   | NewDecodeError LBS.ByteString
   | RecoverDecodeError LBS.ByteString
+  | HistoryDecodeError LBS.ByteString
+  | SendDecodeError LBS.ByteString
   deriving (Show, Eq, Generic)
 instance Exception ApiException

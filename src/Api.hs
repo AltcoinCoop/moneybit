@@ -49,7 +49,7 @@ instance FromJSON TranscodeRequest where
 data NewRequest = NewRequest
   { newName     :: T.Text
   , newPassword :: T.Text -- ^ Plaintext
-  , newLanguage :: T.Text
+  , newLanguage :: Language
   } deriving (Show, Eq)
 
 instance FromJSON NewRequest where
@@ -64,7 +64,7 @@ instance FromJSON NewRequest where
 
 data RecoverRequest = RecoverRequest
   { recoverName     :: T.Text
-  , recoverLanguage :: T.Text
+  , recoverLanguage :: Language
   , recoverMnemonic :: T.Text
   } deriving (Show, Eq)
 
@@ -80,7 +80,7 @@ instance FromJSON RecoverRequest where
 
 data SendRequest = SendRequest
   { sendRecipient :: T.Text -- FIXME address
-  , sendAmount    :: T.Text
+  , sendAmount    :: Double
   , sendMixin     :: Int
   , sendPaymentId :: Maybe T.Text -- FIXME integrated
   } deriving (Show, Eq)
@@ -92,6 +92,11 @@ instance FromJSON SendRequest where
                 <*> o .: "mixin"
                 <*> o .:? "paymentId"
   parseJSON x = typeMismatch "SendRequest" x
+
+
+-- data SendResponse = SendResponse
+--   { sendTransactions :: [(TransactionId, Double)]
+--   }
 
 
 -- * Open
@@ -108,9 +113,9 @@ instance FromJSON OpenRequest where
   parseJSON x = typeMismatch "OpenRequest" x
 
 data OpenResponse = OpenResponse
-  { openBalance :: Balance
-  , openAddress :: T.Text
-  , openHistory :: [Transaction]
+  { openBalance     :: Balance
+  , openAddress     :: T.Text
+  , openHistory     :: [Transaction]
   , openHistoryMore :: Bool
   } deriving (Show, Eq)
 
@@ -142,6 +147,17 @@ instance FromJSON HistoryRequest where
                    <*> o .:? "txId"
                    <*> o .:? "paymentId"
   parseJSON x = typeMismatch "HistoryRequest" x
+
+data HistoryResponse = HistoryResponse
+  { historyHistory :: [Transaction]
+  , historyMore    :: Bool
+  } deriving (Show, Eq)
+
+instance ToJSON HistoryResponse where
+  toJSON HistoryResponse{..} = object
+    [ "history" .= historyHistory
+    , "historyMore" .= historyMore
+    ]
 
 
 -- * Seeds
@@ -188,3 +204,26 @@ instance ToJSON Transaction where
     , "txId"          .= transactionTxId
     , "confirmations" .= transactionConfirmations
     ]
+
+
+data Language
+  = English
+  | Spanish
+  | German
+  | Italian
+  | Portuguese
+  | Russian
+  | Japanese
+  deriving (Show, Eq)
+
+instance FromJSON Language where
+  parseJSON (String s)
+    | s == "en" = pure English
+    | s == "es" = pure Spanish
+    | s == "de" = pure German
+    | s == "it" = pure Italian
+    | s == "pt" = pure Portuguese
+    | s == "ru" = pure Russian
+    | s == "ja" = pure Japanese
+    | otherwise = fail "Not a language string"
+  parseJSON x = typeMismatch "Language" x

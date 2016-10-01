@@ -10,6 +10,7 @@ import Main.Options
 -- import Config
 import Application
 import Application.Types
+import Monero.Wallet.Process (closeWallet)
 
 import           Options.Applicative
 import qualified Data.Yaml as Y
@@ -28,7 +29,14 @@ import Data.Url
 import Data.Maybe
 import Data.Default
 import Data.Monoid
+import Data.STRef
+import Data.Strict.Tuple
+import qualified Data.Map.Strict as Map
 import Control.Monad.Reader
+import Control.Monad.ST
+import Control.Monad.Catch
+import Control.Monad (forM_)
+import Control.Exception (AsyncException)
 
 
 
@@ -49,8 +57,16 @@ main = do
 
   (env,cfg) <- digestAppOpts cliOpts
   print env
-  entry (fromJust $ port cliOpts) env undefined -- (mkMutable cfg)
+  handle (catchInterrupt env)
+    $ entry (fromJust $ port cliOpts) env undefined -- (mkMutable cfg)
 
+
+catchInterrupt :: Env -> AsyncException -> IO ()
+catchInterrupt env e = do
+  wallets <- stToIO $ readSTRef $ envOpenWallets env
+  forM_ (Map.elems wallets) $ \(cfg :!: hs) -> closeWallet cfg hs
+  -- should block
+  throwM e
 
 
 -- | Entry point, post options parsing

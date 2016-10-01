@@ -13,8 +13,16 @@ import Api
 import Application.Types
 import Templates.Master
 import Pages.NotFound
+import Monero.Wallet.Process as Monero
+import Monero.Wallet.RPC     as MoneroRPC
+import Monero.Types          as Monero
 
 import Data.Aeson as A hiding (json)
+import Data.Time
+import Data.Default
+import Data.STRef
+import Data.Strict.Tuple
+import qualified Data.Map.Strict as Map
 import Web.Routes.Nested
 import Network.Wai.Trans
 import Network.HTTP.Types
@@ -31,11 +39,13 @@ import Control.Monad.IO.Class
 import Control.Arrow (second)
 import Control.Monad (forM_)
 import Control.Monad.Catch
+import Control.Monad.ST
+import Control.Monad.Reader
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay) -- FIXME
 
-import Data.Time
 
+-- FIXME: Forked processes dangle! Also, port incrementation!!
 
 
 routes :: RouterT (MiddlewareT AppM) sec AppM ()
@@ -136,15 +146,46 @@ openHandle w app req resp =
         case A.decode b of
           Nothing -> throwM $ OpenDecodeError b
           Just OpenRequest{..} -> do
-            liftIO $ threadDelay 1000000
-            json OpenResponse
-              { openBalance = Balance { balanceBalance = 5
-                                      , balanceUnlocked = 5
-                                      }
-              , openAddress = "asdf"
-              , openHistory = []
-              , openHistoryMore = True
-              } -- FIXME needs genuine content
+            -- TODO: Check session password
+
+            wRef <- envOpenWallets <$> ask
+            mW <- liftIO $ stToIO $ do
+                    wallets <- readSTRef wRef
+                    pure $ Map.lookup w wallets
+
+            cfg <- case mW of
+              Just (cfg' :!: _) -> pure cfg'
+              Nothing -> do
+                let pConf :: WalletProcessConfig
+                    pConf = def { walletsDir = "." }
+                    oConf :: OpenWalletConfig
+                    oConf = OpenWalletConfig
+                              { openWalletName     = w
+                              , openWalletPassword = openPassword
+                              }
+
+                liftIO $ do
+                  (cfg',hs') <- openWallet pConf oConf
+                  stToIO $ modifySTRef wRef (Map.insert w (cfg' :!: hs'))
+                  pure cfg'
+
+            r <- liftIO $ do
+              Monero.Balance
+                { balance         = b
+                , unlockedBalance = ub
+                } <- getBalance cfg
+              MoneroRPC.GotAddress (Monero.Address (Monero.Base58String a))
+                <- MoneroRPC.getAddress cfg
+              pure OpenResponse
+                { openBalance = Api.Balance { balanceBalance  = fromIntegral b  / 1e12
+                                            , balanceUnlocked = fromIntegral ub / 1e12
+                                            }
+                , openAddress = a
+                , openHistory = []
+                , openHistoryMore = True
+                }
+
+            json r
   in  mid app req resp
 
 closeHandle :: T.Text -> MiddlewareT AppM
@@ -158,10 +199,20 @@ integratedHandle w = action $ get $ json
 
 
 seedsHandle :: T.Text -> MiddlewareT AppM
-seedsHandle w = action $ get $ json
-  SeedsResponse
-    { seedsMnemonic = "asdf"
-    , seedsViewkey  = "asdf"
+seedsHandle w = action $ get $ do
+  wRef <- envOpenWallets <$> ask
+  mW   <- liftIO $ stToIO $ Map.lookup w <$> readSTRef wRef
+  (mnemonic,viewkey) <- case mW of
+    Nothing          -> throwM $ WalletNotOpen w
+    Just (cfg :!: _) -> liftIO $ do
+      (MoneroRPC.QueriedKey m)
+        <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
+      (MoneroRPC.QueriedKey v)
+        <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyView
+      pure (m,v)
+  json SeedsResponse
+    { seedsMnemonic = mnemonic
+    , seedsViewkey  = viewkey
     , seedsSpendkey = "asdf"
     }
 
@@ -201,10 +252,9 @@ sendHandle w app req resp =
         post $ do
           b <- liftIO $ strictRequestBody req
           case A.decode b of
-            Nothing -> throwM $ SendDecodeError b
+            Nothing              -> throwM $ SendDecodeError b
             Just SendRequest{..} -> do
-              liftIO $ threadDelay 1000000
-              json ("asdf" :: T.Text) -- FIXME transaction Ids? addresses et. al?
+              json ("D:" :: T.Text)
   in  mid app req resp
 
 
@@ -218,8 +268,24 @@ newHandle app req resp =
         case A.decode b of
           Nothing -> throwM $ NewDecodeError b
           Just NewRequest{..} -> do
-            liftIO $ threadDelay 1000000
-            text "Ok!" -- FIXME
+            let pConf :: WalletProcessConfig
+                pConf = def { walletsDir = "." } -- FIXME config
+                mConf :: MakeWalletConfig
+                mConf = MakeWalletConfig
+                          { makeWalletName     = newName
+                          , makeWalletPassword = newPassword
+                          , makeWalletLanguage = toMoneroLanguage newLanguage
+                          }
+            mnemonic <- liftIO $ do
+              makeWallet pConf mConf
+              threadDelay 2000000
+              (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
+              threadDelay 2000000
+              (MoneroRPC.QueriedKey mn)
+                <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
+              closeWallet cfg hs
+              pure mn
+            json mnemonic
   in  mid app req resp
 
 

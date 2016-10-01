@@ -177,3 +177,8 @@ data ApiException
   | SendDecodeError LBS.ByteString
   deriving (Show, Eq, Generic)
 instance Exception ApiException
+
+data AuthException
+  = WalletNotOpen T.Text
+  deriving (Show, Eq, Generic)
+instance Exception AuthException

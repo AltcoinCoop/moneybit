@@ -5,6 +5,8 @@
 
 module Api where
 
+import qualified Monero.Wallet.Process as M
+
 import Data.Aeson as A
 import Data.Aeson.Types (typeMismatch)
 import Data.Time (UTCTime)
@@ -227,3 +229,16 @@ instance FromJSON Language where
     | s == "ja" = pure Japanese
     | otherwise = fail "Not a language string"
   parseJSON x = typeMismatch "Language" x
+
+
+
+toMoneroLanguage :: Language -> M.WalletLanguage
+toMoneroLanguage l =
+  case l of
+    English    -> M.English
+    Spanish    -> M.Spanish
+    German     -> M.German
+    Italian    -> M.Italian
+    Portuguese -> M.Portuguese
+    Russian    -> M.Russian
+    Japanese   -> M.Japanese

@@ -21,8 +21,11 @@ import qualified Data.Text.Encoding as T
 import Data.Default
 import Data.Monoid
 import Data.Url
+import Data.STRef
+import qualified Data.Map.Strict as Map
 import Control.Monad
 import Control.Monad.Catch
+import Control.Monad.ST
 import System.Environment (lookupEnv)
 import System.Directory ( doesFileExist, doesDirectoryExist
                         , getHomeDirectory, createDirectoryIfMissing
@@ -138,13 +141,16 @@ digestAppOpts AppOpts
                   , NaCl.decode $ unUnEncode $ snd certKeypair
                   ) of
                (Just pk', Just sk') -> pure (pk',sk')
-               xs -> error "impossible"
+               _                    -> error "impossible"
+
+  wallets <- stToIO $ newSTRef Map.empty
 
   pure ( Env
-           { envAuthority = a
-           , envWrkDir = wrkDir
-           , envCertPk = pk
-           , envCertSk = sk
+           { envAuthority   = a
+           , envWrkDir      = wrkDir
+           , envCertPk      = pk
+           , envCertSk      = sk
+           , envOpenWallets = wallets
            }
        , undefined -- FIXME
        )

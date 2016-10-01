@@ -17,23 +17,25 @@ Library
                         Api
                         Application
                         Application.Types
-                        Data.Json.RPC
                         Routes
                         Routes.Assets
                         Pages.NotFound
                         Templates.Master
   Build-Depends:        base >= 4.8 && < 5
+                      , hmonero
                       , aeson
                       , aeson-pretty
                       , base16-bytestring
                       , base58-bytestring
                       , base64-bytestring
                       , bytestring
+                      , containers
                       , cryptonite
                       , data-default
                       , directory
                       , exceptions
                       , file-embed
+                      , ghc-prim
                       , heredoc
                       , hostname-validate
                       , http-client
@@ -49,6 +51,7 @@ Library
                       , path-extra
                       , process
                       , saltine
+                      , strict
                       , text
                       , time
                       , transformers
@@ -69,10 +72,12 @@ Executable moneybit
   Other-Modules:        Main.Options
   Build-Depends:        base >= 4.8 && < 5
                       , moneybit
+                      , hmonero
                       , aeson
                       , aeson-pretty
                       , base64-bytestring
                       , bytestring
+                      , containers
                       , data-default
                       , directory
                       , ekg

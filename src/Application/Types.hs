@@ -9,16 +9,24 @@
 
 module Application.Types where
 
+import Data.Process (ProcessHandles)
+import Data.Json.RPC (RPCConfig)
+import Data.Strict.Tuple (Pair)
+
 import Data.Url
 import Data.Typeable
 import Data.Aeson as A
 import Data.Aeson.Encode.Pretty as A hiding (Config)
+import qualified Data.Map.Strict as Map
+import Data.STRef
 import Path.Extended
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Logger
 import Control.Monad.State
 import GHC.Generics
+import GHC.Prim (RealWorld)
+import qualified Data.Text as T
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Base64 as BS64
@@ -34,10 +42,11 @@ import Crypto.Saltine.Class as NaCl
 -- ** Read-Only Data
 
 data Env = Env
-  { envAuthority :: UrlAuthority
-  , envWrkDir    :: FilePath
-  , envCertPk    :: PublicKey
-  , envCertSk    :: SecretKey
+  { envAuthority   :: UrlAuthority
+  , envWrkDir      :: FilePath
+  , envCertPk      :: PublicKey
+  , envCertSk      :: SecretKey
+  , envOpenWallets :: STRef RealWorld (Map.Map T.Text (Pair RPCConfig ProcessHandles))
   } deriving (Eq)
 
 instance Show Env where

@@ -39,10 +39,13 @@ resolver: nightly-2016-05-20
 # will not be run. This is useful for tweaking upstream packages.
 packages:
   - '.'
-    #  - '/home/athan/dev/nested-routes'
   - location:
       git: https://github.com/athanclark/nested-routes.git
       commit: b47ec1a43ad03d51d43ae1a2f478c34b01b248cd
+    extra-dep: true
+  - location:
+      git: https://github.com/moneybit/hmonero.git
+      commit: 9e80dfe2effe8eb63bd79201a9c1ff0aa9ec891b
     extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver

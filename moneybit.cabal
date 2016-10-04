@@ -32,8 +32,9 @@ Library
                       , containers
                       , cryptonite
                       , data-default
-                      , directory
+                      , directory <= 1.2.2.0
                       , exceptions
+                      , filepath
                       , file-embed
                       , ghc-prim
                       , heredoc

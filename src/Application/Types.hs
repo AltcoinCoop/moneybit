@@ -5,21 +5,25 @@
   , MultiParamTypeClasses
   , DeriveGeneric
   , RecordWildCards
+  , NamedFieldPuns
   #-}
 
 module Application.Types where
 
 import Data.Process (ProcessHandles)
 import Data.Json.RPC (RPCConfig)
+import Monero.Wallet.Process (WalletProcessConfig (..))
 import Data.Strict.Tuple (Pair)
 
 import Data.Url
 import Data.Typeable
 import Data.Aeson as A
+import Data.Aeson.Types (typeMismatch)
+import Data.Default
 import Data.Aeson.Encode.Pretty as A hiding (Config)
 import qualified Data.Map.Strict as Map
 import Data.STRef
-import Path.Extended
+import Path.Extended hiding ((</>))
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Logger
@@ -31,6 +35,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Base64 as BS64
 import Network.HTTP.Client (Request)
+import Network (HostName, PortNumber)
+import System.FilePath ((</>))
 
 import Crypto.Saltine.Core.Box (PublicKey, SecretKey)
 import Crypto.Saltine.Class as NaCl
@@ -60,21 +66,88 @@ instance Show Env where
 
 -- ** Stateful Data
 
-type Config = ()
+data Config = Config
+  { configWalletsPath        :: FilePath
+  , configWallets            :: [String]
+  , configConcurrentWallets  :: Int
+  , configWalletStartingPort :: PortNumber
+  , configMoneroWalletCli    :: FilePath
+  , configDaemonHost         :: HostName
+  , configDaemonPort         :: PortNumber
+  } deriving (Show, Eq)
+
+instance Default Config where
+  def = Config
+    { configWalletsPath        = "" -- gets overwritten
+    , configWallets            = [] -- gets overwritten
+    , configConcurrentWallets  = 1
+    , configWalletStartingPort = 18082
+    , configMoneroWalletCli    = "monero-wallet-cli"
+    , configDaemonHost         = "node.moneybit.science" -- FIXME
+    , configDaemonPort         = 18081
+    }
+
+instance ToJSON Config where
+  toJSON Config{..} = object
+    [ "walletPath"         .= configWalletsPath
+    , "wallets"            .= configWallets
+    , "concurrentWallets"  .= configConcurrentWallets
+    , "walletStartingPort" .= (fromIntegral configWalletStartingPort :: Int)
+    , "moneroWalletCli"    .= configMoneroWalletCli
+    , "daemonHost"         .= configDaemonHost
+    , "daemonPort"         .= (fromIntegral configDaemonPort :: Int)
+    ]
+
+instance FromJSON Config where
+  parseJSON (Object o) = do
+    p  <- o .: "walletPath"
+    ws <- o .: "wallets"
+    cw <- o .:? "concurrentWallets" .!= 1
+    wp <- getPN <$> o .:? "walletStartingPort" .!= 18082
+    mw <- o .:? "moneroWalletCli" .!= "monero-wallet-cli"
+    dh <- o .:? "daemonHost" .!= "node.moneybit.science"
+    dp <- getPN <$> o .:? "daemonPort" .!= 18081
+    pure Config
+      { configWalletsPath        = p
+      , configWallets            = ws
+      , configConcurrentWallets  = cw
+      , configWalletStartingPort = wp
+      , configMoneroWalletCli    = mw
+      , configDaemonHost         = dh
+      , configDaemonPort         = dp
+      }
+    where
+      getPN :: Int -> PortNumber
+      getPN = fromIntegral
+  parseJSON x = typeMismatch "Config" x
+
+
+makeWalletProcessConfig :: MonadApp m => m WalletProcessConfig
+makeWalletProcessConfig = do
+  Config{..} <- config <$> get
+  -- TODO: port numbers?
+  pure def
+    { walletsDir          = configWalletsPath
+    , moneroWalletCliPath = configMoneroWalletCli
+    , walletDaemonHost    = configDaemonHost
+    , walletDaemonPort    = configDaemonPort
+    }
+
+
 
 -- | Update the config file every time it's changed in the UI
 configure :: MonadApp m
-          => FilePath
-          -> (Config -> Config)
+          => (Config -> Config)
           -> m ()
-configure cfgPath f = do
-  Mutable{..} <- get
+configure f = do
+  Env {envWrkDir} <- ask
+  Mutable{..}     <- get
   let config' = f config
   put Mutable
         { config = config'
         , rpcId  = rpcId
         }
-  liftIO . LBS.writeFile cfgPath
+  liftIO . LBS.writeFile (envWrkDir </> "config.json")
          $ A.encodePretty config'
 
 

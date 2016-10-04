@@ -45,7 +45,7 @@ packages:
     extra-dep: true
   - location:
       git: https://github.com/moneybit/hmonero.git
-      commit: dc25ebd7d672a314c53d507aff8fc8c877c23ee4
+      commit: c7ec0b3e01cc95623cda601467fef9c37eded453
     extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
@@ -60,6 +60,7 @@ extra-deps:
   - HList-0.4.2.0
   - saltine-0.0.0.4
   - base58-bytestring-0.1.0
+  - fileneglect-0.0.0.1
 
 # Override default flag values for local packages and extra-deps
 flags: {}

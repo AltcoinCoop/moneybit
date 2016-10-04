@@ -58,13 +58,13 @@ main = do
   (env,cfg) <- digestAppOpts cliOpts
   print env
   handle (catchInterrupt env)
-    $ entry (fromJust $ port cliOpts) env undefined -- (mkMutable cfg)
+    $ entry (fromJust $ port cliOpts) env (mkMutable cfg)
 
 
 catchInterrupt :: Env -> AsyncException -> IO ()
 catchInterrupt env e = do
   wallets <- stToIO $ readSTRef $ envOpenWallets env
-  forM_ (Map.elems wallets) $ \(cfg :!: hs) -> closeWallet cfg hs
+  forM_ (Map.elems wallets) $ \(_ :!: hs) -> closeWallet hs
   -- should block
   throwM e
 

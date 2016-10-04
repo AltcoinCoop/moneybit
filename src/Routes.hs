@@ -4,6 +4,7 @@
   , FlexibleContexts
   , DataKinds
   , RecordWildCards
+  , NamedFieldPuns
   #-}
 
 module Routes where
@@ -156,9 +157,8 @@ openHandle w app req resp =
             cfg <- case mW of
               Just (cfg' :!: _) -> pure cfg'
               Nothing -> do
-                let pConf :: WalletProcessConfig
-                    pConf = def { walletsDir = "." }
-                    oConf :: OpenWalletConfig
+                pConf <- lift makeWalletProcessConfig
+                let oConf :: OpenWalletConfig
                     oConf = OpenWalletConfig
                               { openWalletName     = w
                               , openWalletPassword = openPassword
@@ -268,9 +268,8 @@ newHandle app req resp =
         case A.decode b of
           Nothing -> throwM $ NewDecodeError b
           Just NewRequest{..} -> do
-            let pConf :: WalletProcessConfig
-                pConf = def { walletsDir = "." } -- FIXME config
-                mConf :: MakeWalletConfig
+            pConf <- lift makeWalletProcessConfig
+            let mConf :: MakeWalletConfig
                 mConf = MakeWalletConfig
                           { makeWalletName     = newName
                           , makeWalletPassword = newPassword
@@ -278,13 +277,15 @@ newHandle app req resp =
                           }
             mnemonic <- liftIO $ do
               makeWallet pConf mConf
-              threadDelay 2000000
+              threadDelay 1000000
               (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
-              threadDelay 2000000
+              threadDelay 1000000
               (MoneroRPC.QueriedKey mn)
                 <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
-              closeWallet cfg hs
+              closeWallet hs
               pure mn
+            lift $ configure $ \c@Config{configWallets} ->
+              c { configWallets = T.unpack newName : configWallets }
             json mnemonic
   in  mid app req resp
 

@@ -10,11 +10,13 @@ module Templates.Master where
 import Application.Types
 
 import Data.Url
+import Data.Aeson ((.=), encode, object, Value, toJSON)
 import Web.Page.Lucid
-import Web.Routes.Nested
+import Web.Routes.Nested hiding (get)
 import qualified Network.Wai.Middleware.ContentType.Types as CT
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Text.Lazy.IO as LT
 import qualified Data.ByteString as BS
 import Network.HTTP.Types
@@ -29,7 +31,7 @@ import Data.Markup as M
 import Control.Monad.Trans
 import Control.Monad.Morph
 import Control.Monad.Reader
-import Control.Monad.State (modify)
+import Control.Monad.State (modify, get)
 
 
 -- | Render without @mainTemplate@
@@ -116,20 +118,16 @@ masterPage =
           elm = [there|./frontend/dist/Main.min.js|]
       deploy M.JavaScript Inline elm
       deploy M.JavaScript Inline modulePost
-      let flags :: LT.Text
-          flags =[here|
+
+      ws <- configWallets . config <$> lift get
+      let ws' = LT.decodeUtf8 $ encode $ object $ (\w -> "name" .= w) <$> ws
+          flags :: LT.Text
+          flags = LT.unwords
+            [ [here|
 var host_ = "http://localhost:3000";
-var flags_ = {
-  "wallets" : [
-    {
-      "name" : "foo"
-    },
-    {
-      "name" : "bar"
-    }
-  ]
-};
                       |]
+            , "var flags_ = " <> ws' <> ";"
+            ]
       deploy M.JavaScript Inline flags
       let init :: LT.Text
           init = [there|./frontend/init.js|]

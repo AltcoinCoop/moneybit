@@ -22,6 +22,7 @@ import Data.Default
 import Data.Monoid
 import Data.Url
 import Data.STRef
+import Data.List (isPrefixOf, isSuffixOf)
 import qualified Data.Map.Strict as Map
 import Control.Monad
 import Control.Monad.Catch
@@ -29,7 +30,7 @@ import Control.Monad.ST
 import System.Environment (lookupEnv)
 import System.Directory ( doesFileExist, doesDirectoryExist
                         , getHomeDirectory, createDirectoryIfMissing
-                        , getAppUserDataDirectory)
+                        , getAppUserDataDirectory, getDirectoryContents)
 import System.IO.Error (isDoesNotExistError)
 import System.FilePath
 #ifdef mingw32_HOST_OS
@@ -91,7 +92,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
 
 -- | Note that this function will fail to pattern match on @Nothing@'s - use
 -- @def@ beforehand.
-digestAppOpts :: AppOpts -> IO (Env, config)
+digestAppOpts :: AppOpts -> IO (Env, Config)
 digestAppOpts AppOpts
                { port = Just p
                , config = mc
@@ -109,50 +110,63 @@ digestAppOpts AppOpts
             else do
 #if defined(mingw32_HOST_OS)
               home <- Win32.sHGetFolderPath nullPtr Win32.cSIDL_APPDATA nullPtr 0
-              let x = home ++ "\\moneybit"
+              let x = home </> "moneybit"
 #else
               home <- getHomeDirectory
-              let x = home ++ "/.moneybit"
+              let x = home </> ".moneybit"
 #endif
               return x
     )
 
   createDirectoryIfMissing True wrkDir
 
-  c <-
-    case mc of
-      Nothing ->
-        pure $ wrkDir </> "moneybit.json"
-      Just c -> pure c
+  c <- case mc of
+          Nothing -> pure $ wrkDir </> "config.json"
+          Just c  -> pure c
 
   exists <- doesFileExist c
-  --cfg <- if exists
-  --       then do
-  --          cfgFile <- LBS.readFile c
-  --          case A.decode cfgFile of
-  --            Nothing  -> throwM $ MalformedConfigFile cfgFile
-  --            Just cfg -> pure cfg
-  --       else do
-  --          putStrLn $ "No config found, writing to " ++ c
-  --          LBS.writeFile c $ A.encodePretty (def :: Config)
-  --          pure def
+  cfg <- if exists
+         then do
+            cfgFile <- LBS.readFile c
+            case A.decode cfgFile of
+              Nothing   -> throwM $ MalformedConfigFile cfgFile
+              Just cfg' -> pure cfg'
+         else do
+            putStrLn $ "No config found, writing to " ++ c
 
-  (pk,sk) <- case ( NaCl.decode $ unUnEncode $ fst certKeypair
-                  , NaCl.decode $ unUnEncode $ snd certKeypair
-                  ) of
-               (Just pk', Just sk') -> pure (pk',sk')
-               _                    -> error "impossible"
+            createDirectoryIfMissing True $ wrkDir </> "wallets"
+            ws <- getDirectoryContents $ wrkDir </> "wallets"
+            let isNotWalletFile w = ".keys" `isSuffixOf` w
+                                 || ".address.txt" `isSuffixOf` w
+                                 || ".log" `isSuffixOf` w
+                                 || "." == w
+                                 || ".." == w
+                                 || "$" `isPrefixOf` w
+
+                cfg' = def { configWalletsPath = wrkDir </> "wallets"
+                           , configWallets     = filter (not . isNotWalletFile) ws
+                           }
+            LBS.writeFile c $ A.encodePretty cfg'
+            pure cfg'
+
+  createDirectoryIfMissing True $ configWalletsPath cfg
+
+  (certPk,certSk) <- case ( NaCl.decode $ unUnEncode $ fst certKeypair
+                          , NaCl.decode $ unUnEncode $ snd certKeypair
+                          ) of
+                      (Just pk', Just sk') -> pure (pk',sk')
+                      _                    -> error "impossible"
 
   wallets <- stToIO $ newSTRef Map.empty
 
   pure ( Env
            { envAuthority   = a
            , envWrkDir      = wrkDir
-           , envCertPk      = pk
-           , envCertSk      = sk
+           , envCertPk      = certPk
+           , envCertSk      = certSk
            , envOpenWallets = wallets
            }
-       , undefined -- FIXME
+       , cfg
        )
 digestAppOpts AppOpts{..} = error "impossible state"
 

@@ -28,6 +28,8 @@ import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Logger
 import Control.Monad.State
+import Control.Monad.ST
+
 import GHC.Generics
 import GHC.Prim (RealWorld)
 import qualified Data.Text as T
@@ -37,6 +39,8 @@ import qualified Data.ByteString.Base64 as BS64
 import Network.HTTP.Client (Request)
 import Network (HostName, PortNumber)
 import System.FilePath ((</>))
+import System.Process (readCreateProcessWithExitCode, shell)
+import System.Exit
 
 import Crypto.Saltine.Core.Box (PublicKey, SecretKey)
 import Crypto.Saltine.Class as NaCl
@@ -125,14 +129,38 @@ instance FromJSON Config where
 makeWalletProcessConfig :: MonadApp m => m WalletProcessConfig
 makeWalletProcessConfig = do
   Config{..} <- config <$> get
-  -- TODO: port numbers?
-  pure def
-    { walletsDir          = configWalletsPath
-    , moneroWalletCliPath = configMoneroWalletCli
-    , walletDaemonHost    = configDaemonHost
-    , walletDaemonPort    = configDaemonPort
-    }
+  Env{envOpenWallets} <- ask
+  wallets <- liftIO $ stToIO $ readSTRef envOpenWallets
+  if Map.size wallets >= configConcurrentWallets
+  then throwM MaxConcurrentOpenWallets
+  else do
+    port <- nextAvailPort
+    pure def
+      { walletsDir          = configWalletsPath
+      , walletRpcPort       = port
+      , moneroWalletCliPath = configMoneroWalletCli
+      , walletDaemonHost    = configDaemonHost
+      , walletDaemonPort    = configDaemonPort
+      }
 
+
+nextAvailPort :: MonadApp m => m PortNumber
+nextAvailPort = do
+  startingPort <- configWalletStartingPort . config <$> get
+  go startingPort
+  where
+    go p = do
+      isAvail <- liftIO $ portIsAvail p
+      if isAvail then pure p else go $ p + 1
+
+
+portIsAvail :: PortNumber -> IO Bool
+portIsAvail p = do
+  (e,xs,_) <- readCreateProcessWithExitCode (shell $ "lsof -i :" ++ show p) ""
+  case (e,xs) of
+    (ExitFailure 1, "") -> pure True
+    (ExitSuccess, _)    -> pure False
+    _                   -> error $ "lsof failed: " ++ show (e,xs, "lsof -i :" ++ show p)
 
 
 -- | Update the config file every time it's changed in the UI
@@ -253,5 +281,6 @@ instance Exception ApiException
 
 data AuthException
   = WalletNotOpen T.Text
+  | MaxConcurrentOpenWallets
   deriving (Show, Eq, Generic)
 instance Exception AuthException

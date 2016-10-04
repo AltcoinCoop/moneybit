@@ -23,6 +23,7 @@ import Data.Time
 import Data.Default
 import Data.STRef
 import Data.Strict.Tuple
+import Data.Monoid
 import qualified Data.Map.Strict as Map
 import Web.Routes.Nested
 import Network.Wai.Trans
@@ -42,6 +43,7 @@ import Control.Monad (forM_)
 import Control.Monad.Catch
 import Control.Monad.ST
 import Control.Monad.Reader
+import Control.Monad.Logger
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay) -- FIXME
 
@@ -141,7 +143,8 @@ transcodeHandle app req resp =
 -- * API
 
 openHandle :: T.Text -> MiddlewareT AppM
-openHandle w app req resp =
+openHandle w app req resp = do
+  logInfoN $ "Opening wallet: " <> w
   let mid = action $ post $ do
         b <- liftIO $ strictRequestBody req -- FIXME account for chunking
         case A.decode b of
@@ -186,10 +189,20 @@ openHandle w app req resp =
                 }
 
             json r
-  in  mid app req resp
+  mid app req resp
 
 closeHandle :: T.Text -> MiddlewareT AppM
-closeHandle w = action $ get $ text "closed" -- FIXME actually close
+closeHandle w = action $ get $ do
+  lift $ do
+    Env{envOpenWallets} <- ask
+    liftIO $ do
+      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+      case mW of
+        Nothing -> pure ()
+        Just (_ :!: hs) -> do
+          closeWallet hs
+          stToIO $ modifySTRef envOpenWallets $ Map.delete w
+  text "closed" -- FIXME actually close
 
 
 integratedHandle :: T.Text -> MiddlewareT AppM
@@ -262,7 +275,8 @@ sendHandle w app req resp =
 -- Creation
 
 newHandle :: MiddlewareT AppM
-newHandle app req resp =
+newHandle app req resp = do
+  logInfoN "Creating wallet"
   let mid = action $ post $ do
         b <- liftIO $ strictRequestBody req
         case A.decode b of
@@ -287,7 +301,7 @@ newHandle app req resp =
             lift $ configure $ \c@Config{configWallets} ->
               c { configWallets = T.unpack newName : configWallets }
             json mnemonic
-  in  mid app req resp
+  mid app req resp
 
 
 recoverHandle :: MiddlewareT AppM

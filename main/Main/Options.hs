@@ -27,8 +27,7 @@ import qualified Data.Map.Strict as Map
 import Control.Monad
 import Control.Monad.Catch
 import Control.Monad.ST
-import System.Environment (lookupEnv)
-import System.Directory ( doesFileExist, doesDirectoryExist
+import System.Directory ( doesFileExist
                         , getHomeDirectory, createDirectoryIfMissing
                         , getAppUserDataDirectory, getDirectoryContents)
 import System.IO.Error (isDoesNotExistError)
@@ -37,7 +36,7 @@ import System.FilePath
 import qualified System.Win32 as Win32
 #endif
 import GHC.Generics
-import Crypto.Saltine.Core.Box (Keypair, newKeypair)
+import Crypto.Saltine.Core.Box (newKeypair)
 import Crypto.Saltine.Class as NaCl
 import Language.Haskell.TH (runIO)
 

@@ -1,7 +1,8 @@
 {-# LANGUAGE
-    DeriveGeneric
-  , ScopedTypeVariables
+    ScopedTypeVariables
   , OverloadedStrings
+  , QuasiQuotes
+  , TemplateHaskell
   #-}
 
 module Main where
@@ -12,37 +13,47 @@ import Application
 import Application.Types
 import Monero.Wallet.Process (closeWallet)
 
-import           Options.Applicative
-import qualified Data.Yaml as Y
-import qualified Data.Aeson.Types as A
+import Options.Applicative
 import Network.Wai.Trans
 import Network.Wai.Handler.Warp
 import Network.Wai.Middleware.Gzip
 import Network.Wai.Middleware.RequestLogger
-import Network.HTTP.Types
-import Web.Routes.Nested
 
-import System.Directory
 import System.Remote.Monitoring
+import System.Process (readCreateProcess, shell)
 
-import Data.Url
 import Data.Maybe
-import Data.Default
-import Data.Monoid
 import Data.STRef
 import Data.Strict.Tuple
 import qualified Data.Map.Strict as Map
 import Control.Monad.Reader
 import Control.Monad.ST
 import Control.Monad.Catch
-import Control.Monad (forM_)
 import Control.Exception (AsyncException)
 
+import Text.Heredoc (there)
+import Language.Haskell.TH
+
+
+logo :: String
+logo = [there|logo.txt|]
+
+
+commit :: String
+commit = $(do c <- runIO $ readCreateProcess (shell "git log -n 1") ""
+              [|c|]
+          )
 
 
 
 main :: IO ()
 main = do
+  putStrLn $ unlines
+    [ logo
+    , "Build Commit:"
+    , commit
+    ]
+
   -- CLI Opts
   let opts :: ParserInfo AppOpts
       opts = info (helper <*> appOpts) $
@@ -76,14 +87,9 @@ entry p env mut = do
   run p $
       gzip def
     . logStdoutDev
-    . application
-    $ failApp
+    $ application
   where
-    application = runMiddlewareT (runAppM env mut) $
-        contentMiddleware
-      . securityMiddleware
-    failApp _ respond =
-      respond $ textOnly "404!" status404 []
+    application = runApplicationT (runAppM env mut) app
    -- otherLogger app req resp = do
    --   print $ pathInfo req
    --   app req resp

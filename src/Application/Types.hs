@@ -16,7 +16,6 @@ import Monero.Wallet.Process (WalletProcessConfig (..))
 import Data.Strict.Tuple (Pair)
 
 import Data.Url
-import Data.Typeable
 import Data.Aeson as A
 import Data.Aeson.Types (typeMismatch)
 import Data.Default
@@ -31,12 +30,11 @@ import Control.Monad.State
 import Control.Monad.ST
 
 import GHC.Generics
-import GHC.Prim (RealWorld)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Base64 as BS64
-import Network.HTTP.Client (Request)
 import Network (HostName, PortNumber)
 import System.FilePath ((</>))
 import System.Process (readCreateProcessWithExitCode, shell)
@@ -44,6 +42,9 @@ import System.Exit
 
 import Crypto.Saltine.Core.Box (PublicKey, SecretKey)
 import Crypto.Saltine.Class as NaCl
+import Web.Routes.Nested (textOnly)
+import Network.Wai.Trans (ApplicationT)
+import Network.HTTP.Types (status400, status401)
 
 
 -- * Infrastructure of the App
@@ -279,8 +280,15 @@ data ApiException
   deriving (Show, Eq, Generic)
 instance Exception ApiException
 
+catchApiException :: ApiException -> ApplicationT AppM
+catchApiException e req resp = resp $ textOnly (LT.pack $ show e) status400 []
+
 data AuthException
   = WalletNotOpen T.Text
   | MaxConcurrentOpenWallets
   deriving (Show, Eq, Generic)
 instance Exception AuthException
+
+
+catchAuthException :: AuthException -> ApplicationT AppM
+catchAuthException e req resp = resp $ textOnly (LT.pack $ show e) status401 []

@@ -61,6 +61,13 @@ instance FromJSON NewRequest where
                <*> o .: "language"
   parseJSON x = typeMismatch "NewRequest" x
 
+instance ToJSON NewRequest where
+  toJSON NewRequest{..} = object
+    [ "name"     .= newName
+    , "password" .= newPassword
+    , "language" .= newLanguage
+    ]
+
 
 -- * Recover
 
@@ -113,6 +120,13 @@ instance FromJSON OpenRequest where
     OpenRequest <$> o .: "password"
                 <*> o .: "sessionPassword"
   parseJSON x = typeMismatch "OpenRequest" x
+
+instance ToJSON OpenRequest where
+  toJSON OpenRequest{..} = object
+    [ "password" .= openPassword
+    , "sessionPassword" .= openSessionPassword
+    ]
+
 
 data OpenResponse = OpenResponse
   { openBalance     :: Balance
@@ -230,6 +244,15 @@ instance FromJSON Language where
     | otherwise = fail "Not a language string"
   parseJSON x = typeMismatch "Language" x
 
+instance ToJSON Language where
+  toJSON l = case l of
+    English     -> "en"
+    Spanish     -> "es"
+    German      -> "de"
+    Italian     -> "it"
+    Portuguese  -> "pt"
+    Russian     -> "ru"
+    Japanese    -> "ja"
 
 
 toMoneroLanguage :: Language -> M.WalletLanguage

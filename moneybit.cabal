@@ -84,10 +84,12 @@ Executable moneybit
                       , ekg
                       , exceptions
                       , filepath
+                      , heredoc
                       , http-types
                       , mtl
                       , nested-routes
                       , optparse-applicative
+                      , process
                       , saltine
                       , strict
                       , template-haskell
@@ -98,6 +100,39 @@ Executable moneybit
                       , wai-transformers
                       , warp
                       , yaml
+
+
+Test-Suite test
+  Type:                 exitcode-stdio-1.0
+  Default-Language:     Haskell2010
+  HS-Source-Dirs:       test
+                      , main
+  GHC-Options:          -Wall -threaded
+  Main-Is:              Test.hs
+  Other-Modules:        Main.Options
+  Build-Depends:        base
+                      , moneybit
+                      , aeson
+                      , aeson-pretty
+                      , bytestring
+                      , base64-bytestring
+                      , containers
+                      , data-default
+                      , directory
+                      , exceptions
+                      , filepath
+                      , optparse-applicative
+                      , saltine
+                      , tasty
+                      , tasty-hunit
+                      , tasty-quickcheck
+                      , template-haskell
+                      , text
+                      , urlpath
+                      , wai
+                      , wai-extra
+                      , wai-transformers
+
 
 Source-Repository head
   Type:                 git

@@ -20,7 +20,6 @@ import Monero.Types          as Monero
 
 import Data.Aeson as A hiding (json)
 import Data.Time
-import Data.Default
 import Data.STRef
 import Data.Strict.Tuple
 import Data.Monoid
@@ -30,25 +29,22 @@ import Network.Wai.Trans
 import Network.HTTP.Types
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as LT
-import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base16 as BS16
 import qualified Data.ByteString.Base64 as BS64
 import qualified Data.ByteString.Base58 as BS58
 import qualified Data.ByteString.Lazy as LBS
 import Control.Monad.IO.Class
-import Control.Arrow (second)
-import Control.Monad (forM_)
 import Control.Monad.Catch
 import Control.Monad.ST
 import Control.Monad.Reader
 import Control.Monad.Logger
+import qualified Control.Monad.State as S
+import qualified System.FilePath as F
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay) -- FIXME
+import System.Directory (removeFile)
 
-
--- FIXME: Forked processes dangle! Also, port incrementation!!
 
 
 routes :: RouterT (MiddlewareT AppM) sec AppM ()
@@ -59,22 +55,25 @@ routes = do
   match (l_ "wallets" </> o_) (action homeHandle)
   matchGroup (l_ "wallet" </> word </> o_) $ do
     matchHere (\w -> action homeHandle)
+    match (l_ "open"         </> o_) openHandle
+
     match (l_ "overview"     </> o_) (\w -> action homeHandle)
+    match (l_ "transactions" </> o_) (\w -> action homeHandle)
+
     match (l_ "send"         </> o_) sendHandle
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
-    match (l_ "transactions" </> o_) (\w -> action homeHandle)
-    match (l_ "seeds"        </> o_) (\w -> action homeHandle)
-    match (l_ "open"         </> o_) openHandle
-    match (l_ "close"        </> o_) closeHandle
     match (l_ "integrated"   </> o_) integratedHandle
     match (l_ "history"      </> o_) historyHandle
     match (l_ "seeds"        </> o_) seedsHandle
+
+    match (l_ "close"        </> o_) closeHandle
+    match (l_ "delete"       </> o_) deleteHandle
   match (l_ "new"     </> o_) newHandle
   match (l_ "recover" </> o_) recoverHandle
 
   -- Not Found
   match (l_ "not-found" </> o_) (action homeHandle) -- :v
-  matchAny (action notFoundHandle)
+  matchAny notFoundHandle
 
   -- Utils
   match (l_ "newPaymentId" </> o_) newPaymentIdHandle
@@ -198,16 +197,48 @@ closeHandle w = action $ get $ do
     liftIO $ do
       mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
       case mW of
-        Nothing -> pure ()
+        Nothing -> throwM $ WalletNotOpen w
         Just (_ :!: hs) -> do
           closeWallet hs
           stToIO $ modifySTRef envOpenWallets $ Map.delete w
-  text "closed" -- FIXME actually close
+  text "closed"
+
+
+deleteHandle :: T.Text -> MiddlewareT AppM
+deleteHandle w = action $ get $ do
+  -- FIXME: Authenticate
+  lift $ do
+    Env{envOpenWallets} <- ask
+    liftIO $ do
+      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+      case mW of
+        Nothing -> throwM $ WalletNotOpen w
+        Just (_ :!: hs) -> do
+          closeWallet hs
+          stToIO $ modifySTRef envOpenWallets $ Map.delete w
+    Config{configWalletsPath} <- config <$> S.get
+    liftIO $ mapM_ (\f -> removeFile $ configWalletsPath F.</> f)
+               [ T.unpack w
+               , T.unpack w ++ ".keys"
+               , T.unpack w ++ ".address.txt"
+               , T.unpack w ++ ".log"
+               ]
+  text "deleted"
 
 
 integratedHandle :: T.Text -> MiddlewareT AppM
-integratedHandle w = action $ get $ json
-  ("asdf" :: T.Text) -- FIXME include 64bit payment id?
+integratedHandle w = action $ get $ do
+  integrated <- lift $ do
+    Env{envOpenWallets} <- ask
+    liftIO $ do
+      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+      case mW of
+        Nothing -> throwM $ WalletNotOpen w
+        Just (cfg :!: _) -> do
+          MadeIntegratedAddress (Address (Base58String i))
+            <- makeIntegratedAddress cfg $ MakeIntegratedAddress Nothing
+          pure i
+  json integrated -- FIXME include 64bit payment id?
 
 
 
@@ -250,7 +281,7 @@ historyHandle w app req resp =
             Nothing -> throwM $ HistoryDecodeError b
             Just HistoryRequest{..} -> do
               liftIO $ threadDelay 1000000
-              json HistoryResponse
+              json HistoryResponse -- FIXME
                 { historyHistory = []
                 , historyMore = True
                 } -- FIXME
@@ -290,12 +321,16 @@ newHandle app req resp = do
                           , makeWalletLanguage = toMoneroLanguage newLanguage
                           }
             mnemonic <- liftIO $ do
+              putStrLn "Creating..."
               makeWallet pConf mConf
               threadDelay 1000000
+              putStrLn "Opening..."
               (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
               threadDelay 1000000
+              putStrLn "Getting Seed..."
               (MoneroRPC.QueriedKey mn)
                 <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
+              putStrLn "Closing..."
               closeWallet hs
               pure mn
             lift $ configure $ \c@Config{configWallets} ->
@@ -317,7 +352,6 @@ recoverHandle app req resp =
 
 
 
-notFoundHandle :: ActionT AppM ()
-notFoundHandle = get $ do
+notFoundHandle :: MiddlewareT AppM
+notFoundHandle = action $ get $ do
   htmlLight status404 notFoundContent
-  text "404 :("

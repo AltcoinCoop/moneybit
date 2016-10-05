@@ -8,23 +8,16 @@ module Routes.Assets where
 
 import Application.Types
 
-import Text.Heredoc (there, here)
+import Text.Heredoc (there)
 import Data.FileEmbed (embedFile, embedDir)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.ByteString as BS
-import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base16 as BS16
-import qualified Data.ByteString.Base64 as BS64
-import qualified Data.ByteString.Base58 as BS58
 import qualified Data.ByteString.Lazy as LBS
 
 import Web.Routes.Nested
 import Network.Wai.Trans
-import Network.HTTP.Types
 import Control.Monad (forM_)
 
 

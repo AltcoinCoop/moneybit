@@ -13,11 +13,8 @@ import Web.Routes.Nested
 import Network.Wai.Trans
 import Network.HTTP.Types
 
-import qualified Data.Text as T
 import Control.Monad.Catch
-import Control.Monad.Reader
 
-import System.Directory
 import GHC.Generics
 
 
@@ -46,3 +43,18 @@ securityMiddleware app req resp = do
 contentMiddleware :: MiddlewareT AppM
 contentMiddleware =
   route routes
+
+
+
+defApp :: Monad m => ApplicationT m
+defApp _ resp = resp $ textOnly "404" status404 []
+
+
+
+app :: ApplicationT AppM
+app =
+  let a = securityMiddleware
+        . contentMiddleware
+        $ defApp
+  in  a `catchApplicationT` catchApiException
+        `catchApplicationT` catchAuthException

@@ -21,3 +21,4 @@ target/
 TAGS
 
 node_modules/
+log/

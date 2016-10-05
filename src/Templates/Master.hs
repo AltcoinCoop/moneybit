@@ -10,15 +10,13 @@ module Templates.Master where
 import Application.Types
 
 import Data.Url
-import Data.Aeson ((.=), encode, object, Value, toJSON)
+import Data.Aeson ((.=), encode, object)
 import Web.Page.Lucid
 import Web.Routes.Nested hiding (get)
 import qualified Network.Wai.Middleware.ContentType.Types as CT
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
-import qualified Data.Text.Lazy.IO as LT
-import qualified Data.ByteString as BS
 import Network.HTTP.Types
 import Lucid
 import Text.Heredoc (there, here)

@@ -52,7 +52,7 @@ routes = do
   -- Casual Pages
   matchHere (action homeHandle)
   match (l_ "config" </> o_) (action homeHandle)
-  match (l_ "wallets" </> o_) (action homeHandle)
+  match (l_ "wallets" </> o_) walletsHandle
   matchGroup (l_ "wallet" </> word </> o_) $ do
     matchHere (\w -> action homeHandle)
     match (l_ "open"         </> o_) openHandle
@@ -63,6 +63,7 @@ routes = do
     match (l_ "send"         </> o_) sendHandle
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "integrated"   </> o_) integratedHandle
+    match (l_ "address"      </> o_) addressHandle
     match (l_ "history"      </> o_) historyHandle
     match (l_ "seeds"        </> o_) seedsHandle
 
@@ -97,49 +98,65 @@ respond200LBS b _ _ resp = resp $ response200LBS b
     response200LBS = responseLBS status200 []
 
 
--- Assets
+-- * Handles
 
--- Handles
+-- ** Html
 
 homeHandle :: ActionT AppM ()
 homeHandle = get $ html (Just AppWallets) ""
 
-
-newPaymentIdHandle :: MiddlewareT AppM
-newPaymentIdHandle = action $ get $ do
-  xs <- liftIO $ getRandomBytes 32
-  json $ T.decodeUtf8 $ BS16.encode xs
+notFoundHandle :: MiddlewareT AppM
+notFoundHandle = action $ get $ do
+  htmlLight status404 notFoundContent
 
 
 
-transcodeHandle :: MiddlewareT AppM
-transcodeHandle app req resp =
+-- ** API
+
+newHandle :: MiddlewareT AppM
+newHandle app req resp = do
+  logInfoN "Creating wallet"
   let mid = action $ post $ do
         b <- liftIO $ strictRequestBody req
         case A.decode b of
-          Nothing -> throwM $ TranscodeDecodeError b
-          Just TranscodeRequest{..} -> do
-            i <- case transcodeFrom of
-                   Base16 -> case BS16.decode transcodeInput of
-                     (x,e) | e == BS.empty -> pure x
-                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
-                   Base64 -> case BS64.decode transcodeInput of
-                     Right x -> pure x
-                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
-                   Base58 -> case BS58.decodeBase58 BS58.bitcoinAlphabet transcodeInput of
-                     Nothing -> throwM $ TranscodeDecodeByteError transcodeInput
-                     Just x  -> pure x
-            let o = case transcodeTo of
-                  Base16 -> BS16.encode i
-                  Base64 -> BS64.encode i
-                  Base58 -> BS58.encodeBase58 BS58.bitcoinAlphabet i
-            json $ T.decodeUtf8 o
+          Nothing -> throwM $ NewDecodeError b
+          Just NewRequest{..} -> do
+            pConf <- lift makeWalletProcessConfig
+            let mConf :: MakeWalletConfig
+                mConf = MakeWalletConfig
+                          { makeWalletName     = newName
+                          , makeWalletPassword = newPassword
+                          , makeWalletLanguage = toMoneroLanguage newLanguage
+                          }
+            mnemonic <- liftIO $ do
+              putStrLn "Creating..."
+              makeWallet pConf mConf
+              threadDelay 1000000
+              putStrLn "Opening..."
+              (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
+              threadDelay 1000000
+              putStrLn "Getting Seed..."
+              (MoneroRPC.QueriedKey mn)
+                <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
+              putStrLn "Closing..."
+              closeWallet hs
+              pure mn
+            lift $ configure $ \c@Config{configWallets} ->
+              c { configWallets = T.unpack newName : configWallets }
+            json mnemonic
+  mid app req resp
+
+
+recoverHandle :: MiddlewareT AppM
+recoverHandle app req resp =
+  let mid = action $ post $ do
+        b <- liftIO $ strictRequestBody req
+        case A.decode b of
+          Nothing -> throwM $ RecoverDecodeError b
+          Just RecoverRequest{..} -> do
+            liftIO $ threadDelay 1000000
+            text "Ok!" -- FIXME
   in  mid app req resp
-
-
-
-
--- * API
 
 openHandle :: T.Text -> MiddlewareT AppM
 openHandle w app req resp = do
@@ -152,9 +169,7 @@ openHandle w app req resp = do
             -- TODO: Check session password
 
             wRef <- envOpenWallets <$> ask
-            mW <- liftIO $ stToIO $ do
-                    wallets <- readSTRef wRef
-                    pure $ Map.lookup w wallets
+            mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef wRef
 
             cfg <- case mW of
               Just (cfg' :!: _) -> pure cfg'
@@ -167,9 +182,12 @@ openHandle w app req resp = do
                               }
 
                 liftIO $ do
+                  -- FIXME: Parse logfile and stop blocking on predicate, too
                   (cfg',hs') <- openWallet pConf oConf
                   stToIO $ modifySTRef wRef (Map.insert w (cfg' :!: hs'))
                   pure cfg'
+
+            logInfoN $ "Found wallet: " <> w
 
             r <- liftIO $ do
               Monero.Balance
@@ -226,19 +244,40 @@ deleteHandle w = action $ get $ do
   text "deleted"
 
 
+-- *** Wallet Components
+
 integratedHandle :: T.Text -> MiddlewareT AppM
-integratedHandle w = action $ get $ do
-  integrated <- lift $ do
-    Env{envOpenWallets} <- ask
-    liftIO $ do
-      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-      case mW of
-        Nothing -> throwM $ WalletNotOpen w
-        Just (cfg :!: _) -> do
-          MadeIntegratedAddress (Address (Base58String i))
-            <- makeIntegratedAddress cfg $ MakeIntegratedAddress Nothing
-          pure i
-  json integrated -- FIXME include 64bit payment id?
+integratedHandle w app req resp =
+  let mid = action $ do
+              get $ do
+                integrated <- lift $ do
+                  Env{envOpenWallets} <- ask
+                  liftIO $ do
+                    mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+                    case mW of
+                      Nothing -> throwM $ WalletNotOpen w
+                      Just (cfg :!: _) -> do
+                        MadeIntegratedAddress (Address (Base58String i))
+                          <- makeIntegratedAddress cfg $ MakeIntegratedAddress Nothing
+                        pure i
+                json integrated -- FIXME include 64bit payment id?
+              post $ do
+                b <- liftIO $ strictRequestBody req
+                xs <- case A.decode b of
+                  Nothing -> throwM $ IntegratedDecodeError b
+                  Just input@Base58String{} -> lift $ do
+                    Env{envOpenWallets} <- ask
+                    liftIO $ do
+                      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+                      case mW of
+                        Nothing -> throwM $ WalletNotOpen w
+                        Just (cfg :!: _) -> do
+                          GotSplitIntegratedAddress{..}
+                            <- splitIntegratedAddress cfg $ SplitIntegratedAddress $
+                                 Address input
+                          pure (gotSplitStandardAddress, gotSplitPaymentId)
+                json xs
+  in  mid app req resp
 
 
 
@@ -259,6 +298,17 @@ seedsHandle w = action $ get $ do
     , seedsViewkey  = viewkey
     , seedsSpendkey = "asdf"
     }
+
+
+addressHandle :: T.Text -> MiddlewareT AppM
+addressHandle w = action $ get $ do
+  GotAddress a <- lift $ do
+    Env{envOpenWallets} <- ask
+    mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+    case mW of
+      Nothing -> throwM $ WalletNotOpen w
+      Just (cfg :!: _) -> liftIO $ MoneroRPC.getAddress cfg
+  json a
 
 
 historyHandle :: T.Text -> MiddlewareT AppM
@@ -303,55 +353,46 @@ sendHandle w app req resp =
 
 
 
--- Creation
+-- ** Utils
 
-newHandle :: MiddlewareT AppM
-newHandle app req resp = do
-  logInfoN "Creating wallet"
+newPaymentIdHandle :: MiddlewareT AppM
+newPaymentIdHandle = action $ get $ do
+  xs <- liftIO $ getRandomBytes 32
+  json $ T.decodeUtf8 $ BS16.encode xs
+
+
+
+transcodeHandle :: MiddlewareT AppM
+transcodeHandle app req resp =
   let mid = action $ post $ do
         b <- liftIO $ strictRequestBody req
         case A.decode b of
-          Nothing -> throwM $ NewDecodeError b
-          Just NewRequest{..} -> do
-            pConf <- lift makeWalletProcessConfig
-            let mConf :: MakeWalletConfig
-                mConf = MakeWalletConfig
-                          { makeWalletName     = newName
-                          , makeWalletPassword = newPassword
-                          , makeWalletLanguage = toMoneroLanguage newLanguage
-                          }
-            mnemonic <- liftIO $ do
-              putStrLn "Creating..."
-              makeWallet pConf mConf
-              threadDelay 1000000
-              putStrLn "Opening..."
-              (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
-              threadDelay 1000000
-              putStrLn "Getting Seed..."
-              (MoneroRPC.QueriedKey mn)
-                <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
-              putStrLn "Closing..."
-              closeWallet hs
-              pure mn
-            lift $ configure $ \c@Config{configWallets} ->
-              c { configWallets = T.unpack newName : configWallets }
-            json mnemonic
-  mid app req resp
-
-
-recoverHandle :: MiddlewareT AppM
-recoverHandle app req resp =
-  let mid = action $ post $ do
-        b <- liftIO $ strictRequestBody req
-        case A.decode b of
-          Nothing -> throwM $ RecoverDecodeError b
-          Just RecoverRequest{..} -> do
-            liftIO $ threadDelay 1000000
-            text "Ok!" -- FIXME
+          Nothing -> throwM $ TranscodeDecodeError b
+          Just TranscodeRequest{..} -> do
+            i <- case transcodeFrom of
+                   Base16 -> case BS16.decode transcodeInput of
+                     (x,e) | e == BS.empty -> pure x
+                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
+                   Base64 -> case BS64.decode transcodeInput of
+                     Right x -> pure x
+                     _ -> throwM $ TranscodeDecodeByteError transcodeInput
+                   Base58 -> case BS58.decodeBase58 BS58.bitcoinAlphabet transcodeInput of
+                     Nothing -> throwM $ TranscodeDecodeByteError transcodeInput
+                     Just x  -> pure x
+            let o = case transcodeTo of
+                  Base16 -> BS16.encode i
+                  Base64 -> BS64.encode i
+                  Base58 -> BS58.encodeBase58 BS58.bitcoinAlphabet i
+            json $ T.decodeUtf8 o
   in  mid app req resp
 
 
-
-notFoundHandle :: MiddlewareT AppM
-notFoundHandle = action $ get $ do
-  htmlLight status404 notFoundContent
+walletsHandle :: MiddlewareT AppM
+walletsHandle app req resp = do
+  let mid = action $ do
+        homeHandle
+        get $ do
+          Env{envOpenWallets} <- ask
+          wallets <- liftIO $ stToIO $ readSTRef envOpenWallets
+          json $ Map.keys wallets
+  mid app req resp

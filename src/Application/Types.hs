@@ -57,6 +57,8 @@ data Env = Env
   , envWrkDir      :: FilePath
   , envCertPk      :: PublicKey
   , envCertSk      :: SecretKey
+  , envInstPk      :: PublicKey
+  , envInstSk      :: SecretKey
   , envOpenWallets :: STRef RealWorld (Map.Map T.Text (Pair RPCConfig ProcessHandles))
   } deriving (Eq)
 
@@ -66,6 +68,8 @@ instance Show Env where
     , "      - dir:  " ++ envWrkDir
     , "      - cert public key: " ++ show (BS64.encode $ NaCl.encode envCertPk)
     , "      - cert secret key: <###>"
+    , "      - inst public key: " ++ show (BS64.encode $ NaCl.encode envInstPk)
+    , "      - inst secret key: <###>"
     ]
 
 
@@ -276,6 +280,7 @@ data ApiException
   | NewDecodeError LBS.ByteString
   | RecoverDecodeError LBS.ByteString
   | HistoryDecodeError LBS.ByteString
+  | IntegratedDecodeError LBS.ByteString
   | SendDecodeError LBS.ByteString
   deriving (Show, Eq, Generic)
 instance Exception ApiException

@@ -45,7 +45,7 @@ packages:
     extra-dep: true
   - location:
       git: https://github.com/moneybit/hmonero.git
-      commit: 545bf933f52355cc79331064f93ad5caf937a3c3
+      commit: 0fe3519b7b4484eba0e99524ecbf2a09494ad319
     extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver

@@ -155,6 +155,7 @@ digestAppOpts AppOpts
                           ) of
                       (Just pk', Just sk') -> pure (pk',sk')
                       _                    -> error "impossible"
+  (instSk,instPk) <- newKeypair
 
   wallets <- stToIO $ newSTRef Map.empty
 
@@ -163,6 +164,8 @@ digestAppOpts AppOpts
            , envWrkDir      = wrkDir
            , envCertPk      = certPk
            , envCertSk      = certSk
+           , envInstPk      = instPk
+           , envInstSk      = instSk
            , envOpenWallets = wallets
            }
        , cfg

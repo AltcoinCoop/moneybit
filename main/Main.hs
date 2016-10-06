@@ -30,6 +30,7 @@ import Control.Monad.Reader
 import Control.Monad.ST
 import Control.Monad.Catch
 import Control.Exception (AsyncException)
+import Control.Concurrent (threadDelay, forkIO)
 
 import Text.Heredoc (there)
 import Language.Haskell.TH
@@ -74,6 +75,7 @@ main = do
 
 catchInterrupt :: Env -> AsyncException -> IO ()
 catchInterrupt env e = do
+  putStrLn "Closing wallets, please wait..."
   wallets <- stToIO $ readSTRef $ envOpenWallets env
   forM_ (Map.elems wallets) $ \(_ :!: hs) -> closeWallet hs
   -- should block
@@ -83,7 +85,11 @@ catchInterrupt env e = do
 -- | Entry point, post options parsing
 entry :: Int -> Env -> Mutable -> IO ()
 entry p env mut = do
-  forkServer "localhost" (p-1)
+  void $ forkServer "localhost" (p-1)
+  void $ forkIO $ forever $ do
+    wallets <- stToIO $ readSTRef $ envOpenWallets env
+    putStrLn $ "[Wallets Open]: " ++ show (Map.keys wallets)
+    threadDelay 10000000
   run p $
       gzip def
     . logStdoutDev

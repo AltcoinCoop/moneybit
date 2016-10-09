@@ -10,7 +10,7 @@ module Templates.Master where
 import Application.Types
 
 import Data.Url
-import Data.Aeson ((.=), encode, object)
+import Data.Aeson ((.=), encode, object, Value)
 import Web.Page.Lucid
 import Web.Routes.Nested hiding (get)
 import qualified Network.Wai.Middleware.ContentType.Types as CT
@@ -118,12 +118,19 @@ masterPage =
       deploy M.JavaScript Inline modulePost
 
       ws <- configWallets . config <$> lift get
-      let ws' = LT.decodeUtf8 $ encode $ object $ (\w -> "name" .= w) <$> ws
+
+      let mkWalletSummary :: String -> Value
+          mkWalletSummary x = object ["name" .= x]
+
+          ws' = LT.decodeUtf8 $ encode $ object
+                  [ "wallets" .= (mkWalletSummary <$> ws)
+                  ]
+
           flags :: LT.Text
           flags = LT.unwords
             [ [here|
 var host_ = "http://localhost:3000";
-                      |]
+                   |]
             , "var flags_ = " <> ws' <> ";"
             ]
       deploy M.JavaScript Inline flags

@@ -92,7 +92,7 @@ instance Default Config where
     , configConcurrentWallets  = 1
     , configWalletStartingPort = 18082
     , configMoneroWalletCli    = "monero-wallet-cli"
-    , configDaemonHost         = "node.moneybit.science" -- FIXME
+    , configDaemonHost         = "node.moneybit.science"
     , configDaemonPort         = 18081
     }
 

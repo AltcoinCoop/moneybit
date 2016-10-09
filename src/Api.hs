@@ -6,10 +6,12 @@
 module Api where
 
 import qualified Monero.Wallet.Process as M
+import qualified Monero.Types as M
 
 import Data.Aeson as A
 import Data.Aeson.Types (typeMismatch)
 import Data.Time (UTCTime)
+import Data.Word (Word8, Word64)
 import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as BS
@@ -52,6 +54,7 @@ data NewRequest = NewRequest
   { newName     :: T.Text
   , newPassword :: T.Text -- ^ Plaintext
   , newLanguage :: Language
+  , newMnemonic :: Maybe T.Text -- ^ For recovery
   } deriving (Show, Eq)
 
 instance FromJSON NewRequest where
@@ -59,39 +62,27 @@ instance FromJSON NewRequest where
     NewRequest <$> o .: "name"
                <*> o .: "password"
                <*> o .: "language"
+               <*> o .:? "mnemonic"
   parseJSON x = typeMismatch "NewRequest" x
 
 instance ToJSON NewRequest where
-  toJSON NewRequest{..} = object
+  toJSON NewRequest{..} = object $
     [ "name"     .= newName
     , "password" .= newPassword
     , "language" .= newLanguage
-    ]
+    ] ++ case newMnemonic of
+           Nothing -> []
+           Just m  -> ["mnemonic" .= m]
 
-
--- * Recover
-
-data RecoverRequest = RecoverRequest
-  { recoverName     :: T.Text
-  , recoverLanguage :: Language
-  , recoverMnemonic :: T.Text
-  } deriving (Show, Eq)
-
-instance FromJSON RecoverRequest where
-  parseJSON (Object o) =
-    RecoverRequest <$> o .: "name"
-                   <*> o .: "language"
-                   <*> o .: "mnemonic"
-  parseJSON x = typeMismatch "RecoverRequest" x
 
 
 -- * Send
 
 data SendRequest = SendRequest
-  { sendRecipient :: T.Text -- FIXME address
+  { sendRecipient :: M.Address
   , sendAmount    :: Double
-  , sendMixin     :: Int
-  , sendPaymentId :: Maybe T.Text -- FIXME integrated
+  , sendMixin     :: Word8
+  , sendPaymentId :: Maybe M.PaymentId -- FIXME integrated
   } deriving (Show, Eq)
 
 instance FromJSON SendRequest where
@@ -130,7 +121,7 @@ instance ToJSON OpenRequest where
 
 data OpenResponse = OpenResponse
   { openBalance     :: Balance
-  , openAddress     :: T.Text
+  , openAddress     :: M.Address
   , openHistory     :: [Transaction]
   , openHistoryMore :: Bool
   } deriving (Show, Eq)
@@ -151,8 +142,8 @@ data HistoryRequest = HistoryRequest
   { historySent      :: Bool
   , historyReceived  :: Bool
   , historyLabel     :: Maybe T.Text
-  , historyTxId      :: Maybe T.Text
-  , historyPaymentId :: Maybe T.Text
+  , historyTxId      :: Maybe M.HexString
+  , historyPaymentId :: Maybe M.PaymentId
   } deriving (Show, Eq)
 
 instance FromJSON HistoryRequest where
@@ -180,8 +171,8 @@ instance ToJSON HistoryResponse where
 
 data SeedsResponse = SeedsResponse
   { seedsMnemonic :: T.Text
-  , seedsViewkey  :: T.Text
-  , seedsSpendkey :: T.Text
+  , seedsViewkey  :: M.HexString
+  , seedsSpendkey :: M.HexString
   } deriving (Show, Eq)
 
 instance ToJSON SeedsResponse where
@@ -209,8 +200,8 @@ instance ToJSON Balance where
 data Transaction = Transaction
   { transactionValue         :: Double
   , transactionDate          :: UTCTime
-  , transactionTxId          :: T.Text
-  , transactionConfirmations :: Int
+  , transactionTxId          :: M.HexString
+  , transactionConfirmations :: Word64
   } deriving (Show, Eq)
 
 instance ToJSON Transaction where
@@ -265,3 +256,10 @@ toMoneroLanguage l =
     Portuguese -> M.Portuguese
     Russian    -> M.Russian
     Japanese   -> M.Japanese
+
+
+toMoneroAmount :: Double -> Word64
+toMoneroAmount x = floor $ x * 1e12
+
+fromMoneroAmount :: Word64 -> Double
+fromMoneroAmount x = fromIntegral x / 1e12

@@ -17,6 +17,8 @@ import Pages.NotFound
 import Monero.Wallet.Process as Monero
 import Monero.Wallet.RPC     as MoneroRPC
 import Monero.Types          as Monero
+import Data.Process          (ProcessHandles)
+import Data.Json.RPC         (RPCConfig)
 
 import Data.Aeson as A hiding (json)
 import Data.Time
@@ -42,7 +44,7 @@ import Control.Monad.Logger
 import qualified Control.Monad.State as S
 import qualified System.FilePath as F
 import Crypto.Random (getRandomBytes)
-import Control.Concurrent (threadDelay) -- FIXME
+import Control.Concurrent (threadDelay)
 import System.Directory (removeFile)
 
 
@@ -52,7 +54,10 @@ routes = do
   -- Casual Pages
   matchHere (action homeHandle)
   match (l_ "config" </> o_) (action homeHandle)
-  match (l_ "wallets" </> o_) walletsHandle
+  matchGroup (l_ "wallets" </> o_) $ do
+    matchHere walletsHandle
+    match (l_ "open" </> o_) openWalletsHandle
+  match (l_ "new"     </> o_) newHandle
   matchGroup (l_ "wallet" </> word </> o_) $ do
     matchHere (\w -> action homeHandle)
     match (l_ "open"         </> o_) openHandle
@@ -64,13 +69,12 @@ routes = do
     match (l_ "receive"      </> o_) (\w -> action homeHandle)
     match (l_ "integrated"   </> o_) integratedHandle
     match (l_ "address"      </> o_) addressHandle
-    match (l_ "history"      </> o_) historyHandle
+    match (l_ "balance"      </> o_) balanceHandle
+    match (l_ "history"      </> o_) historyHandle -- TODO
     match (l_ "seeds"        </> o_) seedsHandle
 
     match (l_ "close"        </> o_) closeHandle
     match (l_ "delete"       </> o_) deleteHandle
-  match (l_ "new"     </> o_) newHandle
-  match (l_ "recover" </> o_) recoverHandle
 
   -- Not Found
   match (l_ "not-found" </> o_) (action homeHandle) -- :v
@@ -106,7 +110,7 @@ homeHandle :: ActionT AppM ()
 homeHandle = get $ html (Just AppWallets) ""
 
 notFoundHandle :: MiddlewareT AppM
-notFoundHandle = action $ get $ do
+notFoundHandle = action $ get $
   htmlLight status404 notFoundContent
 
 
@@ -127,6 +131,7 @@ newHandle app req resp = do
                           { makeWalletName     = newName
                           , makeWalletPassword = newPassword
                           , makeWalletLanguage = toMoneroLanguage newLanguage
+                          , makeWalletSeed     = newMnemonic
                           }
             mnemonic <- liftIO $ do
               putStrLn "Creating..."
@@ -147,16 +152,6 @@ newHandle app req resp = do
   mid app req resp
 
 
-recoverHandle :: MiddlewareT AppM
-recoverHandle app req resp =
-  let mid = action $ post $ do
-        b <- liftIO $ strictRequestBody req
-        case A.decode b of
-          Nothing -> throwM $ RecoverDecodeError b
-          Just RecoverRequest{..} -> do
-            liftIO $ threadDelay 1000000
-            text "Ok!" -- FIXME
-  in  mid app req resp
 
 openHandle :: T.Text -> MiddlewareT AppM
 openHandle w app req resp = do
@@ -166,10 +161,10 @@ openHandle w app req resp = do
         case A.decode b of
           Nothing -> throwM $ OpenDecodeError b
           Just OpenRequest{..} -> do
-            -- TODO: Check session password
+            -- FIXME: Check session password
 
-            wRef <- envOpenWallets <$> ask
-            mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef wRef
+            Env{envOpenWallets} <- ask
+            mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef envOpenWallets
 
             cfg <- case mW of
               Just (cfg' :!: _) -> pure cfg'
@@ -184,7 +179,8 @@ openHandle w app req resp = do
                 liftIO $ do
                   -- FIXME: Parse logfile and stop blocking on predicate, too
                   (cfg',hs') <- openWallet pConf oConf
-                  stToIO $ modifySTRef wRef (Map.insert w (cfg' :!: hs'))
+                  stToIO $ modifySTRef envOpenWallets $
+                    Map.insert w (cfg' :!: hs')
                   pure cfg'
 
             logInfoN $ "Found wallet: " <> w
@@ -193,13 +189,13 @@ openHandle w app req resp = do
               Monero.Balance
                 { balance         = b
                 , unlockedBalance = ub
-                } <- getBalance cfg
-              MoneroRPC.GotAddress (Monero.Address (Monero.Base58String a))
-                <- MoneroRPC.getAddress cfg
+                }                    <- getBalance cfg
+              MoneroRPC.GotAddress a <- MoneroRPC.getAddress cfg
               pure OpenResponse
-                { openBalance = Api.Balance { balanceBalance  = fromIntegral b  / 1e12
-                                            , balanceUnlocked = fromIntegral ub / 1e12
-                                            }
+                { openBalance = Api.Balance
+                    { balanceBalance  = fromIntegral b  / 1e12
+                    , balanceUnlocked = fromIntegral ub / 1e12
+                    }
                 , openAddress = a
                 , openHistory = []
                 , openHistoryMore = True
@@ -211,14 +207,11 @@ openHandle w app req resp = do
 closeHandle :: T.Text -> MiddlewareT AppM
 closeHandle w = action $ get $ do
   lift $ do
+    (_ :!: hs) <- findWallet w
     Env{envOpenWallets} <- ask
     liftIO $ do
-      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-      case mW of
-        Nothing -> throwM $ WalletNotOpen w
-        Just (_ :!: hs) -> do
-          closeWallet hs
-          stToIO $ modifySTRef envOpenWallets $ Map.delete w
+      closeWallet hs
+      stToIO $ modifySTRef envOpenWallets $ Map.delete w
   text "closed"
 
 
@@ -226,14 +219,11 @@ deleteHandle :: T.Text -> MiddlewareT AppM
 deleteHandle w = action $ get $ do
   -- FIXME: Authenticate
   lift $ do
+    (_ :!: hs) <- findWallet w
     Env{envOpenWallets} <- ask
     liftIO $ do
-      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-      case mW of
-        Nothing -> throwM $ WalletNotOpen w
-        Just (_ :!: hs) -> do
-          closeWallet hs
-          stToIO $ modifySTRef envOpenWallets $ Map.delete w
+      closeWallet hs
+      stToIO $ modifySTRef envOpenWallets $ Map.delete w
     Config{configWalletsPath} <- config <$> S.get
     liftIO $ mapM_ (\f -> removeFile $ configWalletsPath F.</> f)
                [ T.unpack w
@@ -251,31 +241,21 @@ integratedHandle w app req resp =
   let mid = action $ do
               get $ do
                 integrated <- lift $ do
-                  Env{envOpenWallets} <- ask
-                  liftIO $ do
-                    mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-                    case mW of
-                      Nothing -> throwM $ WalletNotOpen w
-                      Just (cfg :!: _) -> do
-                        MadeIntegratedAddress (Address (Base58String i))
-                          <- makeIntegratedAddress cfg $ MakeIntegratedAddress Nothing
-                        pure i
-                json integrated -- FIXME include 64bit payment id?
+                  (cfg :!: _) <- findWallet w
+                  MadeIntegratedAddress (Address (Base58String i))
+                    <- liftIO $ makeIntegratedAddress cfg $ MakeIntegratedAddress Nothing
+                  pure i
+                json integrated
               post $ do
                 b <- liftIO $ strictRequestBody req
                 xs <- case A.decode b of
                   Nothing -> throwM $ IntegratedDecodeError b
                   Just input@Base58String{} -> lift $ do
-                    Env{envOpenWallets} <- ask
-                    liftIO $ do
-                      mW <- stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-                      case mW of
-                        Nothing -> throwM $ WalletNotOpen w
-                        Just (cfg :!: _) -> do
-                          GotSplitIntegratedAddress{..}
-                            <- splitIntegratedAddress cfg $ SplitIntegratedAddress $
-                                 Address input
-                          pure (gotSplitStandardAddress, gotSplitPaymentId)
+                    (cfg :!: _) <- findWallet w
+                    GotSplitIntegratedAddress{..}
+                      <- liftIO $ splitIntegratedAddress cfg $ SplitIntegratedAddress $
+                            Address input
+                    pure (gotSplitStandardAddress, gotSplitPaymentId)
                 json xs
   in  mid app req resp
 
@@ -283,11 +263,9 @@ integratedHandle w app req resp =
 
 seedsHandle :: T.Text -> MiddlewareT AppM
 seedsHandle w = action $ get $ do
-  wRef <- envOpenWallets <$> ask
-  mW   <- liftIO $ stToIO $ Map.lookup w <$> readSTRef wRef
-  (mnemonic,viewkey) <- case mW of
-    Nothing          -> throwM $ WalletNotOpen w
-    Just (cfg :!: _) -> liftIO $ do
+  (mnemonic,viewkey) <- lift $ do
+    (cfg :!: _) <- findWallet w
+    liftIO $ do
       (MoneroRPC.QueriedKey m)
         <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
       (MoneroRPC.QueriedKey v)
@@ -295,47 +273,57 @@ seedsHandle w = action $ get $ do
       pure (m,v)
   json SeedsResponse
     { seedsMnemonic = mnemonic
-    , seedsViewkey  = viewkey
-    , seedsSpendkey = "asdf"
+    , seedsViewkey  = HexString viewkey
+    , seedsSpendkey = HexString "asdf" -- FIXME
     }
 
 
 addressHandle :: T.Text -> MiddlewareT AppM
 addressHandle w = action $ get $ do
   GotAddress a <- lift $ do
-    Env{envOpenWallets} <- ask
-    mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef envOpenWallets
-    case mW of
-      Nothing -> throwM $ WalletNotOpen w
-      Just (cfg :!: _) -> liftIO $ MoneroRPC.getAddress cfg
+    (cfg :!: _) <- findWallet w
+    liftIO $ MoneroRPC.getAddress cfg
   json a
+
+
+balanceHandle :: T.Text -> MiddlewareT AppM
+balanceHandle w = action $ get $ do
+  Monero.Balance{..} <- lift $ do
+    (cfg :!: _) <- findWallet w
+    liftIO $ getBalance cfg
+  json ( fromMoneroAmount balance
+       , fromMoneroAmount unlockedBalance
+       )
 
 
 historyHandle :: T.Text -> MiddlewareT AppM
 historyHandle w app req resp =
-  let mid = action $ do
-        get $ json HistoryResponse
-                { historyHistory =
-                    [ Transaction
-                        { transactionValue = 6
-                        , transactionTxId = "asdf"
-                        , transactionConfirmations = 4
-                        , transactionDate = UTCTime (ModifiedJulianDay 0) 0
-                        }
-                    ]
-                , historyMore = True
-                } -- FIXME
-        post $ do
-          b <- liftIO $ strictRequestBody req
-          case A.decode b of
-            Nothing -> throwM $ HistoryDecodeError b
-            Just HistoryRequest{..} -> do
-              liftIO $ threadDelay 1000000
-              json HistoryResponse -- FIXME
-                { historyHistory = []
-                , historyMore = True
-                } -- FIXME
-  in  mid app req resp
+  -- let mid = action $ do
+  --       (cfg :!: _) <- lift $ findWallet w
+  --       get $
+  --         json HistoryResponse
+  --               { historyHistory =
+  --                   [ Transaction
+  --                       { transactionValue = 6
+  --                       , transactionTxId = HexString "asdf"
+  --                       , transactionConfirmations = 4
+  --                       , transactionDate = UTCTime (ModifiedJulianDay 0) 0
+  --                       }
+  --                   ]
+  --               , historyMore = True
+  --               } -- FIXME
+  --       post $ do
+  --         b <- liftIO $ strictRequestBody req
+  --         case A.decode b of
+  --           Nothing -> throwM $ HistoryDecodeError b
+  --           Just HistoryRequest{..} -> do
+  --             liftIO $ threadDelay 1000000
+  --             json HistoryResponse -- FIXME
+  --               { historyHistory = []
+  --               , historyMore = True
+  --               } -- FIXME
+  -- in  mid app req resp
+      resp $ textOnly "Not Implemented" status500 []
 
 
 
@@ -348,7 +336,22 @@ sendHandle w app req resp =
           case A.decode b of
             Nothing              -> throwM $ SendDecodeError b
             Just SendRequest{..} -> do
-              json ("D:" :: T.Text)
+              lift $ do
+                (cfg :!: _) <- findWallet w
+                void $ liftIO $ transferSplit cfg MakeTransferSplit
+                           { makeTransferSplitDestinations =
+                               [ TransferDestination
+                                   { destinationAmount  = toMoneroAmount sendAmount
+                                   , destinationAddress = sendRecipient
+                                   }
+                               ]
+                           , makeTransferSplitMixin = fromIntegral sendMixin
+                           , makeTransferSplitUnlockTime = 0
+                           , makeTransferSplitPaymentId = sendPaymentId
+                           , makeTransferSplitGetTxKey     = False
+                           , makeTransferSplitNewAlgorithm = True
+                           }
+              json ("Sent" :: T.Text)
   in  mid app req resp
 
 
@@ -388,11 +391,28 @@ transcodeHandle app req resp =
 
 
 walletsHandle :: MiddlewareT AppM
-walletsHandle app req resp = do
-  let mid = action $ do
-        homeHandle
-        get $ do
-          Env{envOpenWallets} <- ask
-          wallets <- liftIO $ stToIO $ readSTRef envOpenWallets
-          json $ Map.keys wallets
-  mid app req resp
+walletsHandle =
+  action $ do
+    homeHandle
+    get $ do
+      Config{configWallets} <- config <$> lift S.get
+      json configWallets
+
+openWalletsHandle :: MiddlewareT AppM
+openWalletsHandle =
+  action $ get $ do
+    openWallets <- lift $ do
+      Env{envOpenWallets} <- ask
+      liftIO $ stToIO $ Map.keys <$> readSTRef envOpenWallets
+    json openWallets
+
+
+-- * Utils
+
+findWallet :: T.Text -> AppM (Pair RPCConfig ProcessHandles)
+findWallet w = do
+  Env{envOpenWallets} <- ask
+  mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+  case mW of
+    Nothing -> throwM $ WalletNotOpen w
+    Just xs -> pure xs

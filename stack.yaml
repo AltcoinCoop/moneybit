@@ -43,9 +43,10 @@ packages:
       git: https://github.com/athanclark/nested-routes.git
       commit: b47ec1a43ad03d51d43ae1a2f478c34b01b248cd
     extra-dep: true
+#  - '../hmonero'
   - location:
       git: https://github.com/moneybit/hmonero.git
-      commit: 0fe3519b7b4484eba0e99524ecbf2a09494ad319
+      commit: 9cafa12b98b4a0c8b6d5f43520dffe15d1cb5513
     extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver

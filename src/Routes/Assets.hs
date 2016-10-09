@@ -23,37 +23,36 @@ import Control.Monad (forM_)
 
 
 staticRoutes :: RouterT (MiddlewareT AppM) sec AppM ()
-staticRoutes = do
-  matchGroup (l_ "static" </> o_) $ do
-    matchOn JavaScript "jquery.min" $ LT.encodeUtf8 jquery
-    matchOn JavaScript "qrious" $ LT.encodeUtf8 qriousJs
-    matchGroup (l_ "cryptocoins" </> o_) $ do
-      matchGroup (l_ "SVG" </> o_) $
-        forM_ cryptocoinsSvgs $ \(f,b) ->
-          let (f',_) = T.breakOnEnd "." $ T.pack f
-          in  matchOn (Other "svg") (T.dropEnd 1 f') $ LBS.fromStrict b
-      match (l_ "fonts" </> l_ "cryptocoins" </> o_) $ action $ get $
-        forM_ cryptocoinsIcons $ \(f,b) ->
-          let (_,e) = T.breakOnEnd "." $ T.pack f
-          in  bytestring (Other e) $ LBS.fromStrict b
-      matchOn Css "cryptocoins" $ LT.encodeUtf8 cryptocoins
-    matchGroup (l_ "semantic" </> o_) $ do
-      match (l_ "semantic" </> o_) $ action $ get $ do
-        bytestring Css        $ LT.encodeUtf8 semanticCss
-        bytestring JavaScript $ LT.encodeUtf8 semanticJs
-      match (l_ "themes" </> l_ "default" </> l_ "assets" </> l_ "fonts" </> l_ "icons" </> o_) $ action $ get $
-        forM_ icons $ \(f,b) ->
-          let (_,e) = T.breakOnEnd "." $ T.pack f
-          in  bytestring (Other e) $ LBS.fromStrict b
-    matchOn JavaScript "clipboard" $ LT.encodeUtf8 clipboardJs
-    matchOn JavaScript "scrypt"    $ LT.encodeUtf8 scryptJs
-    matchOn JavaScript "nacl"      $ LT.encodeUtf8 naclJs
-    matchOn JavaScript "zxcvbn"    $ LT.encodeUtf8 zxcvbnJs
+staticRoutes = matchGroup (l_ "static" </> o_) $ do
+  matchOn JavaScript "jquery.min" $ LT.encodeUtf8 jquery
+  matchOn JavaScript "qrious" $ LT.encodeUtf8 qriousJs
+  matchGroup (l_ "cryptocoins" </> o_) $ do
+    matchGroup (l_ "SVG" </> o_) $
+      forM_ cryptocoinsSvgs $ \(f,b) ->
+        let (f',_) = T.breakOnEnd "." $ T.pack f
+        in  matchOn (Other "svg") (T.dropEnd 1 f') $ LBS.fromStrict b
+    match (l_ "fonts" </> l_ "cryptocoins" </> o_) $ action $ get $
+      forM_ cryptocoinsIcons $ \(f,b) ->
+        let (_,e) = T.breakOnEnd "." $ T.pack f
+        in  bytestring (Other e) $ LBS.fromStrict b
+    matchOn Css "cryptocoins" $ LT.encodeUtf8 cryptocoins
+  matchGroup (l_ "semantic" </> o_) $ do
+    match (l_ "semantic" </> o_) $ action $ get $ do
+      bytestring Css        $ LT.encodeUtf8 semanticCss
+      bytestring JavaScript $ LT.encodeUtf8 semanticJs
+    match (l_ "themes" </> l_ "default" </> l_ "assets" </> l_ "fonts" </> l_ "icons" </> o_) $ action $ get $
+      forM_ icons $ \(f,b) ->
+        let (_,e) = T.breakOnEnd "." $ T.pack f
+        in  bytestring (Other e) $ LBS.fromStrict b
+  matchOn JavaScript "clipboard" $ LT.encodeUtf8 clipboardJs
+  matchOn JavaScript "scrypt"    $ LT.encodeUtf8 scryptJs
+  matchOn JavaScript "nacl"      $ LT.encodeUtf8 naclJs
+  matchOn JavaScript "zxcvbn"    $ LT.encodeUtf8 zxcvbnJs
 
 
 imageRoutes :: RouterT (MiddlewareT AppM) sec AppM ()
 imageRoutes =
-  matchGroup (l_ "images" </> o_) $ do
+  matchGroup (l_ "images" </> o_) $
     matchOn (Other "png") "seeds_stripe" $ LBS.fromStrict seedsStripePng
 
 

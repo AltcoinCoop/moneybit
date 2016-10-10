@@ -1,0 +1,7 @@
+2016-Oct-09 17:31:11.340721 Monero 'Wolfram Warptangent' (v0.10.0.0-release)
+2016-Oct-09 17:31:11.340801 Setting log level = 0
+2016-Oct-09 17:31:11.340825 default_log: monero-wallet-cli.log
+2016-Oct-09 17:31:11.340883 Logging at log level 0 to /home/athan/dev/moneybit/moneybit/monero-wallet-cli.log
+2016-Oct-09 17:31:13.115597 Loaded wallet keys file, with public address: 42rGrXLHckj1vJEpG4HUCvLktdVmiL72wB9hT8Z2AnNuRk6XbWpM3zRMDQD4AiLFqWfRpuknhorTdNgVyTjrthkNFjMPaq3
+2016-Oct-09 17:31:13.452955 Error: wallet failed to connect to daemon: http://localhost:18081. Daemon either is not started or wrong port was passed. Please make sure daemon is running or restart the wallet with the correct daemon address.
+2016-Oct-09 17:31:13.453093 Error: wallet failed to connect to daemon: http://localhost:18081. Daemon either is not started or wrong port was passed. Please make sure daemon is running or restart the wallet with the correct daemon address.

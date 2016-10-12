@@ -143,7 +143,7 @@ newHandle app req resp = do
               putStrLn "Getting Seed..."
               (MoneroRPC.QueriedKey mn)
                 <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
-              putStrLn "Closing..."
+              putStrLn "Created."
               closeWallet hs
               pure mn
             lift $ configure $ \c@Config{configWallets} ->

@@ -265,6 +265,7 @@ instance ToLocation AssetLinks Abs File where
 
 data InitException
   = MalformedConfigFile LBS.ByteString
+  | NonexistentWallet String
   deriving (Show, Eq, Generic)
 instance Exception InitException
 

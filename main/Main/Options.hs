@@ -157,7 +157,12 @@ digestAppOpts AppOpts
                       _                    -> error "impossible"
   (instSk,instPk) <- newKeypair
 
-  wallets <- stToIO $ newSTRef Map.empty
+  let verifyWallet w = do
+        e <- doesFileExist $ configWalletsPath cfg </> w
+        unless e $ throwM $ NonexistentWallet $ configWalletsPath cfg </> w
+  mapM_ verifyWallet $ configWallets cfg
+
+  openWallets <- stToIO $ newSTRef Map.empty
 
   pure ( Env
            { envAuthority   = a
@@ -166,7 +171,7 @@ digestAppOpts AppOpts
            , envCertSk      = certSk
            , envInstPk      = instPk
            , envInstSk      = instSk
-           , envOpenWallets = wallets
+           , envOpenWallets = openWallets
            }
        , cfg
        )

@@ -42,6 +42,7 @@ Library
                       , http-client
                       , http-types
                       , lucid
+                      , logging-effect
                       , markup
                       , mmorph
                       , monad-logger

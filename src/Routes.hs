@@ -9,8 +9,10 @@
 
 module Routes where
 
-import Routes.Assets
+import Routes.Assets (imageRoutes, staticRoutes)
 import Api
+import Api.WebSocket
+import Api.WebSocket.RPC
 import Application.Types
 import Templates.Master
 import Pages.NotFound
@@ -29,6 +31,7 @@ import qualified Data.Map.Strict as Map
 import Web.Routes.Nested
 import Network.Wai.Trans
 import Network.HTTP.Types
+import Network.WebSockets as WS hiding (Response)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as BS
@@ -53,13 +56,13 @@ routes :: RouterT (MiddlewareT AppM) sec AppM ()
 routes = do
   -- Casual Pages
   matchHere (action homeHandle)
-  match (l_ "config" </> o_) (action homeHandle)
+  match (l_ "config" </> o_) configHandle
   matchGroup (l_ "wallets" </> o_) $ do
     matchHere walletsHandle
     match (l_ "open" </> o_) openWalletsHandle
-  match (l_ "new"     </> o_) newHandle
+  match (l_ "new" </> o_) newHandle
   matchGroup (l_ "wallet" </> word </> o_) $ do
-    matchHere (\w -> action homeHandle)
+    matchHere (\w -> action homeHandle) -- FIXME: List open wallets?
     match (l_ "open"         </> o_) openHandle
 
     match (l_ "overview"     </> o_) (\w -> action homeHandle)
@@ -75,6 +78,8 @@ routes = do
 
     match (l_ "close"        </> o_) closeHandle
     match (l_ "delete"       </> o_) deleteHandle
+
+  match (l_ "ws" </> o_) wsHandle
 
   -- Not Found
   match (l_ "not-found" </> o_) (action homeHandle) -- :v
@@ -407,7 +412,7 @@ openWalletsHandle =
     json openWallets
 
 
--- * Utils
+-- ** Utils
 
 findWallet :: T.Text -> AppM (Pair RPCConfig ProcessHandles)
 findWallet w = do
@@ -416,3 +421,52 @@ findWallet w = do
   case mW of
     Nothing -> throwM $ WalletNotOpen w
     Just xs -> pure xs
+
+
+-- * Config
+
+configHandle :: MiddlewareT AppM
+configHandle app req resp =
+  let mid = action $ do
+              get $ do
+                cfg <- config <$> lift S.get
+                json cfg
+              post $ do
+                b <- liftIO $ strictRequestBody req
+                case A.decode b of
+                  Nothing -> throwM $ ConfigDecodeError b
+                  Just cfg@Config{} -> do
+                    -- FIXME Authenticate
+                    lift $ configure $ const cfg
+                    json ("Configured" :: T.Text)
+              homeHandle
+  in  mid app req resp
+
+
+-- * WebSockets
+
+wsHandle :: MiddlewareT AppM
+wsHandle app req resp = do
+  env <- ask
+  mut <- S.get
+  let mid = websocketsOrT (runAppM env mut) defaultConnectionOptions $
+            \pendingConn -> do
+              liftIO $ do
+                conn <- acceptRequest pendingConn
+                sendTextData conn ("Accepted conncetion" :: T.Text)
+
+                forever $ do
+                  d <- receiveDataMessage conn
+                  sub <- case d of
+                    WS.Text b -> do
+                      case A.decode b of
+                        Just r -> pure r
+                        _      -> throwM $ UnsupportedReceivedData d
+                    _          -> throwM $ UnsupportedReceivedData d
+
+                  case sub of
+                    WSSubNew  _ -> pure ()
+                    WSSubOpen _ -> pure ()
+
+                  sendTextData conn $ T.pack $ show d
+  mid app req resp

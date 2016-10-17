@@ -85,17 +85,14 @@ catchInterrupt env e = do
 -- | Entry point, post options parsing
 entry :: Int -> Env -> Mutable -> IO ()
 entry p env mut = do
-  void $ forkServer "localhost" (p-1)
+  void $ forkServer "localhost" (p-1) -- FIXME only in debug mode?
   void $ forkIO $ forever $ do
     wallets <- stToIO $ readSTRef $ envOpenWallets env
     putStrLn $ "[Wallets Open]: " ++ show (Map.keys wallets)
-    threadDelay 10000000
+    threadDelay 10000000 -- FIXME: Only in verbose mode?
   run p $
       gzip def
-    . logStdoutDev
+    . logStdoutDev -- FIXME: Only in verbose mode
     $ application
   where
     application = runApplicationT (runAppM env mut) app
-   -- otherLogger app req resp = do
-   --   print $ pathInfo req
-   --   app req resp

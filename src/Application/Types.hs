@@ -45,6 +45,7 @@ import Crypto.Saltine.Class as NaCl
 import Web.Routes.Nested (textOnly)
 import Network.Wai.Trans (ApplicationT)
 import Network.HTTP.Types (status400, status401)
+import Network.WebSockets (DataMessage)
 
 
 -- * Infrastructure of the App
@@ -60,6 +61,7 @@ data Env = Env
   , envInstPk      :: PublicKey
   , envInstSk      :: SecretKey
   , envOpenWallets :: STRef RealWorld (Map.Map T.Text (Pair RPCConfig ProcessHandles))
+  , envWSSessions  :: STRef RealWorld (Map.Map T.Text WSSessionState)
   } deriving (Eq)
 
 instance Show Env where
@@ -174,7 +176,7 @@ configure :: MonadApp m
           -> m ()
 configure f = do
   Env {envWrkDir} <- ask
-  Mutable{..}     <- get
+  Mutable{config,rpcId} <- get
   let config' = f config
   put Mutable
         { config = config'
@@ -194,6 +196,15 @@ mkMutable c = Mutable
   { config = c
   , rpcId  = 0
   }
+
+
+-- | Simple bookkeeping state for short lived WSRPC sessions
+data WSSessionState
+  = WSProgress {-# UNPACK #-} !Float
+  | WSPending
+
+
+-- * Effect
 
 
 type AppM = LoggingT (ReaderT Env (StateT Mutable IO))
@@ -283,6 +294,7 @@ data ApiException
   | HistoryDecodeError LBS.ByteString
   | IntegratedDecodeError LBS.ByteString
   | SendDecodeError LBS.ByteString
+  | ConfigDecodeError LBS.ByteString
   deriving (Show, Eq, Generic)
 instance Exception ApiException
 
@@ -298,3 +310,9 @@ instance Exception AuthException
 
 catchAuthException :: AuthException -> ApplicationT AppM
 catchAuthException e req resp = resp $ textOnly (LT.pack $ show e) status401 []
+
+
+data WebSocketException
+  = UnsupportedReceivedData DataMessage
+  deriving (Show, Eq, Generic)
+instance Exception WebSocketException

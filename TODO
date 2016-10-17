@@ -1,0 +1,11 @@
+# Grand Scheme
+
+- Websocket streaming json rpc - subscriptions as calls
+  - finite vs. indefinite streams, cool stuff
+- Encryption tunnel
+
+
+# Details
+
+- Use logging-effect for logging debug info
+- on `configure`, move wallet files if necessary (closing on change)

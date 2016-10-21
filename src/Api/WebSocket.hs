@@ -79,3 +79,17 @@ data WSComplete
 instance FromJSON WSSubscribe where
   parseJSON x = (WSSubNew  <$> parseJSON x)
             <|> (WSSubOpen <$> parseJSON x)
+
+
+data WSRPCIncomingCommand
+  = WSSubscribe WSSubscribe
+  | WSSupply WSSupply
+
+instance FromJSON WSRPCIncomingCommand where
+  parseJSON x = (WSSubscribe <$> parseJSON x)
+
+data WSRPCOutgoingCommand
+  = WSReply WSReply
+  | WSComplete WSComplete
+
+-- instance ToJSON WSRPCOutgoingCommand where ...

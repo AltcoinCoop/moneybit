@@ -31,6 +31,8 @@ data WSRPC a = WSRPC
   , wsCancel   :: {-# UNPACK #-} !Bool
     -- ^ Only holds meaning for client supplies and server processing
   }
+  -- FIXME Complete should only apply to OutgoingCommand, while cancel
+  --   only applies to IncomingCommand
 
 
 

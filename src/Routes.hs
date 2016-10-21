@@ -457,16 +457,19 @@ wsHandle app req resp = do
 
                 forever $ do
                   d <- receiveDataMessage conn
-                  sub <- case d of
+                  incoming <- case d of
                     WS.Text b -> do
                       case A.decode b of
                         Just r -> pure r
                         _      -> throwM $ UnsupportedReceivedData d
                     _          -> throwM $ UnsupportedReceivedData d
 
-                  case sub of
-                    WSSubNew  _ -> pure ()
-                    WSSubOpen _ -> pure ()
+                  case incoming of
+                    WSSubscribe sub ->
+                      case sub of
+                        WSSubNew  _ -> pure ()
+                        WSSubOpen _ -> pure ()
+                    WSSupply _ -> pure ()
 
                   sendTextData conn $ T.pack $ show d
   mid app req resp

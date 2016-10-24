@@ -108,7 +108,7 @@ digestAppOpts AppOpts
             then throwM e
             else do
 #if defined(mingw32_HOST_OS)
-              home <- Win32.sHGetFolderPath nullPtr Win32.cSIDL_APPDATA nullPtr 0
+              home <- Win32.sHGetFolderPath Win32.nullPtr Win32.cSIDL_APPDATA Win32.nullPtr 0
               let x = home </> "moneybit"
 #else
               home <- getHomeDirectory

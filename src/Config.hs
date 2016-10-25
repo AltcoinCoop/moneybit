@@ -1,6 +1,7 @@
 {-# LANGUAGE
     RecordWildCards
   , OverloadedStrings
+  , CPP
   #-}
 
 module Config where
@@ -74,7 +75,11 @@ data WalletConfig = WalletConfig
 
 instance Default WalletConfig where
   def = WalletConfig
+#ifdef mingw32_HOST_OS
+    { walletCliPath = "monero-wallet-cli.exe"
+#else
     { walletCliPath = "monero-wallet-cli"
+#endif
     , walletMoneroDNode = def
     }
 

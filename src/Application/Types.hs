@@ -6,6 +6,7 @@
   , DeriveGeneric
   , RecordWildCards
   , NamedFieldPuns
+  , CPP
   #-}
 
 module Application.Types where
@@ -93,7 +94,11 @@ instance Default Config where
     , configWallets            = [] -- gets overwritten
     , configConcurrentWallets  = 1
     , configWalletStartingPort = 18082
+#ifdef mingw32_HOST_OS
+    , configMoneroWalletCli    = "monero-wallet-cli.exe"
+#else
     , configMoneroWalletCli    = "monero-wallet-cli"
+#endif
     , configDaemonHost         = "node.moneybit.science"
     , configDaemonPort         = 18081
     }

@@ -104,6 +104,8 @@ Executable moneybit
                       , wai-transformers
                       , warp
                       , yaml
+  if os(windows)
+    Build-Depends:      Win32
 
 
 Test-Suite test

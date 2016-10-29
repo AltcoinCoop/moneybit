@@ -163,7 +163,7 @@ digestAppOpts AppOpts
   mapM_ verifyWallet $ configWallets cfg
 
   openWallets <- stToIO $ newSTRef Map.empty
-  wsSessions  <- stToIO $ newSTRef Map.empty
+  progresses  <- stToIO $ newSTRef Map.empty
 
   pure ( Env
            { envAuthority   = a
@@ -173,7 +173,7 @@ digestAppOpts AppOpts
            , envInstPk      = instPk
            , envInstSk      = instSk
            , envOpenWallets = openWallets
-           , envWSSessions  = wsSessions
+           , envProgresses  = progresses
            }
        , cfg
        )

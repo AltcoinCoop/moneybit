@@ -16,16 +16,12 @@ version = "0.0.1"
 
 
 
-newtype RPCRequest  r a = RPCRequest  (r a)
-newtype RPCResponse r a = RPCResponse (r a)
-
-
-
 data WSRPC a = WSRPC
   { wsMethod   :: {-# UNPACK #-} !T.Text
   , wsParams   :: a
-  , wsIdent    :: {-# UNPACK #-} !Int
+  , wsIdent    :: {-# UNPACK #-} !T.Text
   , wsInterval :: {-# UNPACK #-} !Int
+    -- ^ In microseconds
   , wsComplete :: {-# UNPACK #-} !Bool
     -- ^ Only holds meaning for server responses and client expectations
   , wsCancel   :: {-# UNPACK #-} !Bool

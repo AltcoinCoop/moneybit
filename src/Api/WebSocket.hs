@@ -62,6 +62,39 @@ instance FromJSON (WSRPC OpenRequest) where
         }
   parseJSON x = typeMismatch "WSRPC" x
 
+instance ToJSON (WSRPC T.Text) where
+  toJSON WSRPC{..} = A.object
+    [ "version"  .= version
+    , "method"   .= ("new" :: T.Text)
+    , "complete" .= True
+    , "id"       .= wsIdent
+    , "params"   .= wsParams
+    ]
+
+instance ToJSON (WSRPC NewProgress) where
+  toJSON WSRPC{..} = A.object
+    [ "version"  .= version
+    , "method"   .= ("new" :: T.Text)
+    , "complete" .= False
+    , "id"       .= wsIdent
+    , "params"   .= wsParams
+    ]
+
+instance ToJSON (WSRPC OpenProgress) where
+  toJSON WSRPC{..} = A.object
+    [ "version"  .= version
+    , "method"   .= ("open" :: T.Text)
+    , "complete" .= False
+    , "id"       .= wsIdent
+    , "params"   .= wsParams
+    ]
+
+newtype NewProgress = NewProgress Double
+instance ToJSON NewProgress where
+  toJSON (NewProgress x) = toJSON x
+newtype OpenProgress = OpenProgress Double
+instance ToJSON OpenProgress where
+  toJSON (OpenProgress x) = toJSON x
 
 
 
@@ -73,8 +106,18 @@ data WSSubscribe
 data WSSupply
 
 data WSReply
+  = WSNewProgress (WSRPC NewProgress)
+  | WSOpenProgress (WSRPC OpenProgress)
+
+instance ToJSON WSReply where
+  toJSON (WSNewProgress x) = toJSON x
+  toJSON (WSOpenProgress x) = toJSON x
 
 data WSComplete
+  = WSComNew (WSRPC T.Text)
+
+instance ToJSON WSComplete where
+  toJSON (WSComNew x) = toJSON x
 
 instance FromJSON WSSubscribe where
   parseJSON x = (WSSubNew  <$> parseJSON x)

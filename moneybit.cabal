@@ -27,6 +27,7 @@ Library
                       , hmonero
                       , aeson
                       , aeson-pretty
+                      , async
                       , base16-bytestring
                       , base58-bytestring
                       , base64-bytestring

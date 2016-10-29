@@ -29,6 +29,7 @@ import Control.Monad.Reader
 import Control.Monad.Logger
 import Control.Monad.State
 import Control.Monad.ST
+import Control.Concurrent.Async
 
 import GHC.Generics
 import qualified Data.Text as T
@@ -62,7 +63,9 @@ data Env = Env
   , envInstPk      :: PublicKey
   , envInstSk      :: SecretKey
   , envOpenWallets :: STRef RealWorld (Map.Map T.Text (Pair RPCConfig ProcessHandles))
-  , envWSSessions  :: STRef RealWorld (Map.Map T.Text WSSessionState)
+                   -- ^ wallet_name -> process_handles
+  , envProgresses  :: STRef RealWorld (Map.Map T.Text (Async T.Text))
+                   -- ^ rpc_id -> async <mnemonic> -- FIXME: should be unique per client
   } deriving (Eq)
 
 instance Show Env where
@@ -201,12 +204,6 @@ mkMutable c = Mutable
   { config = c
   , rpcId  = 0
   }
-
-
--- | Simple bookkeeping state for short lived WSRPC sessions
-data WSSessionState
-  = WSProgress {-# UNPACK #-} !Float
-  | WSPending
 
 
 -- * Effect

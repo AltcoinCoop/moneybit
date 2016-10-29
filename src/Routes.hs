@@ -48,6 +48,7 @@ import qualified Control.Monad.State as S
 import qualified System.FilePath as F
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (async, wait, link)
 import System.Directory (removeFile)
 
 
@@ -143,7 +144,7 @@ newHandle app req resp = do
               makeWallet pConf mConf
               threadDelay 1000000
               putStrLn "Opening..."
-              (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword
+              (cfg,hs) <- openWallet pConf $ OpenWalletConfig newName newPassword 1000000 (\r -> print r) -- FIXME: Websocket only?
               threadDelay 1000000
               putStrLn "Getting Seed..."
               (MoneroRPC.QueriedKey mn)
@@ -451,25 +452,85 @@ wsHandle app req resp = do
   mut <- S.get
   let mid = websocketsOrT (runAppM env mut) defaultConnectionOptions $
             \pendingConn -> do
-              liftIO $ do
-                conn <- acceptRequest pendingConn
-                sendTextData conn ("Accepted conncetion" :: T.Text)
+              conn <- liftIO $ do
+                c <- acceptRequest pendingConn
+                sendTextData c ("Accepted conncetion" :: T.Text)
+                pure c
 
-                forever $ do
-                  d <- receiveDataMessage conn
-                  incoming <- case d of
-                    WS.Text b -> do
-                      case A.decode b of
-                        Just r -> pure r
-                        _      -> throwM $ UnsupportedReceivedData d
-                    _          -> throwM $ UnsupportedReceivedData d
+              forever $ do
+                d <- liftIO $ receiveDataMessage conn
+                incoming <- case d of
+                  WS.Text b -> do
+                    case A.decode b of
+                      Just r -> pure r
+                      _      -> throwM $ UnsupportedReceivedData d
+                  _          -> throwM $ UnsupportedReceivedData d
 
-                  case incoming of
-                    WSSubscribe sub ->
-                      case sub of
-                        WSSubNew  _ -> pure ()
-                        WSSubOpen _ -> pure ()
-                    WSSupply _ -> pure ()
+                case incoming of
+                  WSSubscribe sub ->
+                    case sub of
+                      WSSubNew  WSRPC{..} -> do
+                        let onProgress r = do
+                              print r
+                              -- FIXME: Websocket only?
+                              sendTextData conn $ T.decodeUtf8 $
+                                LBS.toStrict $
+                                A.encode $ WSNewProgress $ WSRPC
+                                  { wsMethod   = "new"
+                                  , wsParams   = NewProgress r
+                                  , wsIdent    = wsIdent
+                                  , wsInterval = 0
+                                  , wsComplete = False
+                                  , wsCancel   = False
+                                  }
 
-                  sendTextData conn $ T.pack $ show d
+                        progresses <- envProgresses <$> ask
+                        pConf      <- makeWalletProcessConfig
+                        let mConf :: MakeWalletConfig
+                            mConf = MakeWalletConfig
+                                      { makeWalletName     = newName wsParams
+                                      , makeWalletPassword = newPassword wsParams
+                                      , makeWalletLanguage = toMoneroLanguage
+                                                            $ newLanguage wsParams
+                                      , makeWalletSeed     = newMnemonic wsParams
+                                      , makeWalletInterval = wsInterval
+                                      , makeWalletProgress = onProgress
+                                      }
+                        mnemonic' <- liftIO $ do
+                          x <- async $ do
+                                  putStrLn "Creating..."
+                                  makeWallet pConf mConf
+                                  threadDelay 1000000
+                                  putStrLn "Opening..."
+                                  (cfg,hs) <- openWallet pConf OpenWalletConfig
+                                                { openWalletName     = newName wsParams
+                                                , openWalletPassword = newPassword wsParams
+                                                , openWalletInterval = wsInterval
+                                                , openWalletProgress = onProgress
+                                                }
+                                  threadDelay 1000000
+                                  putStrLn "Getting Seed..."
+                                  (MoneroRPC.QueriedKey mn)
+                                    <- MoneroRPC.queryKey cfg $ MoneroRPC.QueryKey MoneroRPC.KeyMnemonic
+                                  putStrLn "Created."
+                                  closeWallet hs
+                                  pure mn
+                          link x
+                          stToIO $ modifySTRef' progresses $ Map.insert wsIdent x
+                          mn <- wait x
+                          stToIO $ modifySTRef' progresses $ Map.delete wsIdent
+                          sendTextData conn $ T.decodeUtf8 $ LBS.toStrict $ A.encode $
+                            WSComNew $ WSRPC
+                              { wsMethod   = "new"
+                              , wsParams   = mn
+                              , wsIdent    = wsIdent
+                              , wsInterval = 0
+                              , wsComplete = True
+                              , wsCancel   = False
+                              }
+                        configure $ \c@Config{configWallets} ->
+                          c { configWallets = T.unpack (newName wsParams)
+                                            : configWallets }
+                      WSSubOpen WSRPC{..} -> pure ()
+                  WSSupply _ -> pure ()
   mid app req resp

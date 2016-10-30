@@ -17,21 +17,79 @@ vulnerabilities. __Use at your own risk!__
 (full video [here](http://webm.land/media/jKMC.webm))
 
 
-## Running Client (linux)
+## Running Client
 
+> These steps _"should"_ work, but may not. If they don't, please file an
+> [issue](https://github.com/moneybit/moneybit/issues)! If possible,
+> make it an [SSCCE](http://sscce.org/) as well.
 
-> This _"should"_ work, but may not. If it doesn't, please file an issue and copy
-> the logs! If at all possible, __please__ try to make it an
-> [SSCCE](http://sscce.org/).
+### Linux
 
+- make sure `monero-wallet-cli` is in your PATH, or supply it manually
+  in the `~/.moneybit/config.json` file.
 
 ```bash
 npm install
 ./moneybit
 ```
 
+### Windows
 
-## Building on linux
+in a bash terminal, make sure the folder containing the `monero-wallet-cli.exe` file
+is listed between the colon `:` characters. if it's not, add it with the following
+line:
+
+```bash
+export PATH=$PATH:<The the directory containing your executables>
+```
+
+So, if I had my monero executables in `C:\Users\foo\Downloads\monero\`, then
+you add it like this:
+
+```bash
+foo@DESKTOP-NHAIOA7 MINGW64 ~
+$ export PATH=$PATH:/c/Users/foo/Downloads/monoero
+
+foo@DESKTOP-NAHIOA7 MINGW64 ~
+$ 
+```
+
+> __Note__: in UNIX, parent/child separation is done with a forward slash, like URLs,
+> while in normal Windows, backslashes `\` are used. Also, in unis there is _always_ a
+> "root" directory `/` - so instead of `C:\..` you have `/c/..` - hence the leftmost
+> forward slash.
+
+#### Node.js
+
+Next, you have to get node.js up and running. After you install nvm, you'll be able
+to install it with:
+
+```bash
+nvm install 6.7.0
+```
+
+after it does it's thing, load it with:
+
+```bash
+nvm use 6.7.0
+```
+
+Next, install `bower` globally:
+
+```bash
+npm install -g bower
+```
+
+### LibSodium
+
+There's luckily
+
+> _Coming Soon_ [tm]
+
+
+## Building
+
+### Linux
 
 Steps:
 
@@ -44,7 +102,7 @@ Steps:
 - fetch the assets for the frontend
 - build the server (takes like 10 minutes)
 
-### Ubuntu
+#### Ubuntu
 
 __Get git and libsodium__:
 ```
@@ -95,6 +153,16 @@ to start the electrum client (soon to be integrated directly in the
 haskell executable instead), of if you want, you can run the server
 itself with `./bin/moneybit`. From there, you can point your browser
 to `http://localhost:3000`.
+
+### Windows
+
+- get [git and bash](https://git-scm.com/download/win)
+- get [stack](https://haskellstack.org)
+- get [nvm for windows](https://github.com/coreybutler/nvm-windows)
+- 
+
+
+
 
 ## TODO / Needs to be implemented
 

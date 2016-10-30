@@ -1,7 +1,5 @@
 # Grand Scheme
 
-- Websocket streaming json rpc - subscriptions as calls
-  - finite vs. indefinite streams, cool stuff
 - Encryption tunnel
 
 
@@ -9,3 +7,7 @@
 
 - Use logging-effect for logging debug info
 - on `configure`, move wallet files if necessary (closing on change)
+
+- Progress:
+  - multi-stage progress - making the wallet vs. opening / refreshing
+  - mnemonic seems to halt <1% during creation - should timeout, then just open to refresh?

@@ -180,6 +180,8 @@ openHandle w app req resp = do
                     oConf = OpenWalletConfig
                               { openWalletName     = w
                               , openWalletPassword = openPassword
+                              , openWalletInterval = 1000000
+                              , openWalletProgress = print -- FIXME
                               }
 
                 liftIO $ do
@@ -531,6 +533,71 @@ wsHandle app req resp = do
                         configure $ \c@Config{configWallets} ->
                           c { configWallets = T.unpack (newName wsParams)
                                             : configWallets }
-                      WSSubOpen WSRPC{..} -> pure ()
+                      WSSubOpen WSRPC{..} -> do
+                        -- FIXME: Check session password
+                        let (w, OpenRequest{..}) = wsParams
+
+                        Env{envOpenWallets} <- ask
+                        mW <- liftIO $ stToIO $ Map.lookup w <$> readSTRef envOpenWallets
+                        let onProgress r = do
+                              print r
+                              -- FIXME: Websocket only?
+                              sendTextData conn $ T.decodeUtf8 $
+                                LBS.toStrict $
+                                A.encode $ WSNewProgress $ WSRPC
+                                  { wsMethod   = "new"
+                                  , wsParams   = NewProgress r
+                                  , wsIdent    = wsIdent
+                                  , wsInterval = 0
+                                  , wsComplete = False
+                                  , wsCancel   = False
+                                  }
+
+                        cfg <- case mW of
+                          Just (cfg' :!: _) -> pure cfg'
+                          Nothing -> do
+                            pConf <- lift makeWalletProcessConfig
+                            let oConf :: OpenWalletConfig
+                                oConf = OpenWalletConfig
+                                          { openWalletName     = w
+                                          , openWalletPassword = openPassword
+                                          , openWalletInterval = 1000000
+                                          , openWalletProgress = onProgress
+                                          }
+
+                            liftIO $ do
+                              -- FIXME: Parse logfile and stop blocking on predicate, too
+                              (cfg',hs') <- openWallet pConf oConf
+                              stToIO $ modifySTRef envOpenWallets $
+                                Map.insert w (cfg' :!: hs')
+                              pure cfg'
+
+                        logInfoN $ "Found wallet: " <> w
+
+                        r <- liftIO $ do
+                          Monero.Balance
+                            { balance         = b
+                            , unlockedBalance = ub
+                            }                    <- getBalance cfg
+                          MoneroRPC.GotAddress a <- MoneroRPC.getAddress cfg
+                          pure OpenResponse
+                            { openBalance = Api.Balance
+                                { balanceBalance  = fromIntegral b  / 1e12
+                                , balanceUnlocked = fromIntegral ub / 1e12
+                                }
+                            , openAddress = a
+                            , openHistory = []
+                            , openHistoryMore = True
+                            }
+
+                        liftIO $ sendTextData conn $ T.decodeUtf8 $ LBS.toStrict
+                               $ A.encode $ WSComOpen $ WSRPC
+                                  { wsIdent = wsIdent
+                                  , wsParams = r
+                                  , wsMethod = "open"
+                                  , wsComplete = True
+                                  , wsCancel = False
+                                  , wsInterval = 0
+                                  }
                   WSSupply _ -> pure ()
   mid app req resp

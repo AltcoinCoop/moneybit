@@ -39,7 +39,7 @@ instance FromJSON (WSRPC NewRequest) where
   parseJSON x = typeMismatch "WSRPC" x
 
 
-instance FromJSON (WSRPC OpenRequest) where
+instance FromJSON (WSRPC (T.Text, OpenRequest)) where
   parseJSON (Object o) = do
     v <- o .: "version"
     m <- o .: "method"
@@ -50,16 +50,21 @@ instance FromJSON (WSRPC OpenRequest) where
     else do
       iv <- o .:? "interval" .!= 1000 -- milliseconds
       ps <- o .:  "params"
-      i  <- o .:  "id"
-      c  <- o .:? "cancel" .!= False
-      pure WSRPC
-        { wsMethod   = m
-        , wsParams   = ps
-        , wsIdent    = i
-        , wsInterval = iv
-        , wsComplete = False
-        , wsCancel   = c
-        }
+      case ps of
+        Object o' -> do
+          ps' <- o' .: "new"
+          w   <- o' .: "name"
+          i  <- o .:  "id"
+          c  <- o .:? "cancel" .!= False
+          pure WSRPC
+            { wsMethod   = m
+            , wsParams   = (w,ps')
+            , wsIdent    = i
+            , wsInterval = iv
+            , wsComplete = False
+            , wsCancel   = c
+            }
+        _ -> fail "params not object"
   parseJSON x = typeMismatch "WSRPC" x
 
 instance ToJSON (WSRPC T.Text) where
@@ -89,6 +94,15 @@ instance ToJSON (WSRPC OpenProgress) where
     , "params"   .= wsParams
     ]
 
+instance ToJSON (WSRPC OpenResponse) where
+  toJSON WSRPC{..} = A.object
+    [ "version"  .= version
+    , "method"   .= ("open" :: T.Text)
+    , "complete" .= True
+    , "id"       .= wsIdent
+    , "params"   .= wsParams
+    ]
+
 newtype NewProgress = NewProgress Double
 instance ToJSON NewProgress where
   toJSON (NewProgress x) = toJSON x
@@ -100,7 +114,11 @@ instance ToJSON OpenProgress where
 
 data WSSubscribe
   = WSSubNew (WSRPC NewRequest)
-  | WSSubOpen (WSRPC OpenRequest)
+  | WSSubOpen (WSRPC (T.Text, OpenRequest))
+
+instance FromJSON WSSubscribe where
+  parseJSON x = (WSSubNew  <$> parseJSON x)
+            <|> (WSSubOpen <$> parseJSON x)
 
 
 data WSSupply
@@ -115,13 +133,11 @@ instance ToJSON WSReply where
 
 data WSComplete
   = WSComNew (WSRPC T.Text)
+  | WSComOpen (WSRPC OpenResponse)
 
 instance ToJSON WSComplete where
   toJSON (WSComNew x) = toJSON x
-
-instance FromJSON WSSubscribe where
-  parseJSON x = (WSSubNew  <$> parseJSON x)
-            <|> (WSSubOpen <$> parseJSON x)
+  toJSON (WSComOpen x) = toJSON x
 
 
 data WSRPCIncomingCommand

@@ -544,7 +544,7 @@ wsHandle app req resp = do
                               -- FIXME: Websocket only?
                               sendTextData conn $ T.decodeUtf8 $
                                 LBS.toStrict $
-                                A.encode $ WSNewProgress $ WSRPC
+                                A.encode $ WSOpenProgress $ WSRPC
                                   { wsMethod   = "new"
                                   , wsParams   = NewProgress r
                                   , wsIdent    = wsIdent

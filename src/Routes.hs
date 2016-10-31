@@ -546,7 +546,7 @@ wsHandle app req resp = do
                                 LBS.toStrict $
                                 A.encode $ WSOpenProgress $ WSRPC
                                   { wsMethod   = "new"
-                                  , wsParams   = NewProgress r
+                                  , wsParams   = OpenProgress r
                                   , wsIdent    = wsIdent
                                   , wsInterval = 0
                                   , wsComplete = False

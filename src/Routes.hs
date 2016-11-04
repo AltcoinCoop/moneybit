@@ -44,7 +44,6 @@ import Control.Monad.Catch
 import Control.Monad.ST
 import Control.Monad.Reader
 import Control.Monad.Logger
-import qualified Control.Monad.State as S
 import qualified System.FilePath as F
 import Crypto.Random (getRandomBytes)
 import Control.Concurrent (threadDelay)
@@ -228,12 +227,13 @@ deleteHandle w = action $ get $ do
   -- FIXME: Authenticate
   lift $ do
     (_ :!: hs) <- findWallet w
-    Env{envOpenWallets} <- ask
+    Env{envOpenWallets,envMutable} <- ask
     liftIO $ do
       closeWallet hs
-      stToIO $ modifySTRef envOpenWallets $ Map.delete w
-    Config{configWalletsPath} <- config <$> S.get
-    liftIO $ mapM_ (\f -> removeFile $ configWalletsPath F.</> f)
+      Config{configWalletsPath} <- stToIO $ do
+        modifySTRef envOpenWallets $ Map.delete w
+        config <$> readSTRef envMutable
+      mapM_ (\f -> removeFile $ configWalletsPath F.</> f)
                [ T.unpack w
                , T.unpack w ++ ".keys"
                , T.unpack w ++ ".address.txt"
@@ -403,7 +403,9 @@ walletsHandle =
   action $ do
     homeHandle
     get $ do
-      Config{configWallets} <- config <$> lift S.get
+      Config{configWallets} <- lift $ do
+        Env{envMutable} <- ask
+        liftIO $ stToIO $ config <$> readSTRef envMutable
       json configWallets
 
 openWalletsHandle :: MiddlewareT AppM
@@ -432,7 +434,9 @@ configHandle :: MiddlewareT AppM
 configHandle app req resp =
   let mid = action $ do
               get $ do
-                cfg <- config <$> lift S.get
+                cfg <- lift $ do
+                  Env{envMutable} <- ask
+                  liftIO $ stToIO $ config <$> readSTRef envMutable
                 json cfg
               post $ do
                 b <- liftIO $ strictRequestBody req
@@ -442,8 +446,7 @@ configHandle app req resp =
                     -- FIXME Authenticate
                     lift $ configure $ const cfg
                     json ("Configured" :: T.Text)
-              homeHandle
-  in  mid app req resp
+  in  (action homeHandle . mid) app req resp
 
 
 -- * WebSockets
@@ -451,8 +454,7 @@ configHandle app req resp =
 wsHandle :: MiddlewareT AppM
 wsHandle app req resp = do
   env <- ask
-  mut <- S.get
-  let mid = websocketsOrT (runAppM env mut) defaultConnectionOptions $
+  let mid = websocketsOrT (runAppM env) defaultConnectionOptions $
             \pendingConn -> do
               conn <- liftIO $ do
                 c <- acceptRequest pendingConn

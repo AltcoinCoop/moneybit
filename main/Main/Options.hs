@@ -91,7 +91,7 @@ appOpts = AppOpts <$> portOpt <*> configOpt
 
 -- | Note that this function will fail to pattern match on @Nothing@'s - use
 -- @def@ beforehand.
-digestAppOpts :: AppOpts -> IO (Env, Config)
+digestAppOpts :: AppOpts -> IO Env
 digestAppOpts AppOpts
                { port = Just p
                , config = mc
@@ -148,6 +148,8 @@ digestAppOpts AppOpts
             LBS.writeFile c $ A.encodePretty cfg'
             pure cfg'
 
+  mut <- stToIO $ newSTRef $ mkMutable cfg
+
   createDirectoryIfMissing True $ configWalletsPath cfg
 
   (certPk,certSk) <- case ( NaCl.decode $ unUnEncode $ fst certKeypair
@@ -165,25 +167,24 @@ digestAppOpts AppOpts
   openWallets <- stToIO $ newSTRef Map.empty
   progresses  <- stToIO $ newSTRef Map.empty
 
-  pure ( Env
-           { envAuthority   = a
-           , envWrkDir      = wrkDir
-           , envCertPk      = certPk
-           , envCertSk      = certSk
-           , envInstPk      = instPk
-           , envInstSk      = instSk
-           , envOpenWallets = openWallets
-           , envProgresses  = progresses
-           }
-       , cfg
-       )
+  pure Env
+        { envAuthority   = a
+        , envWrkDir      = wrkDir
+        , envCertPk      = certPk
+        , envCertSk      = certSk
+        , envInstPk      = instPk
+        , envInstSk      = instSk
+        , envOpenWallets = openWallets
+        , envProgresses  = progresses
+        , envMutable     = mut
+        }
 digestAppOpts AppOpts{..} = error "impossible state"
 
 
 runAppMTest :: AppM a -> IO a
 runAppMTest xs = do
-  (e,c) <- digestAppOpts def
-  runAppM e (mkMutable c) xs
+  e <- digestAppOpts def
+  runAppM e xs
 
 
 

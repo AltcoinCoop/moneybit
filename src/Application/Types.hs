@@ -13,9 +13,9 @@ module Application.Types where
 
 import Data.Process (ProcessHandles)
 import Data.Json.RPC (RPCConfig)
-import Monero.Wallet.Process (WalletProcessConfig (..))
-import Data.Strict.Tuple (Pair)
+import Monero.Wallet.Process (WalletProcessConfig (..), closeWallet)
 
+import Data.Strict.Tuple (Pair ((:!:)))
 import Data.Url
 import Data.Aeson as A
 import Data.Aeson.Types (typeMismatch)
@@ -27,7 +27,6 @@ import Path.Extended hiding ((</>))
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Logger
-import Control.Monad.State
 import Control.Monad.ST
 import Control.Concurrent.Async
 
@@ -66,6 +65,7 @@ data Env = Env
                    -- ^ wallet_name -> process_handles
   , envProgresses  :: STRef RealWorld (Map.Map T.Text (Async T.Text))
                    -- ^ rpc_id -> async <mnemonic> -- FIXME: should be unique per client
+  , envMutable     :: STRef RealWorld Mutable
   } deriving (Eq)
 
 instance Show Env where
@@ -89,6 +89,7 @@ data Config = Config
   , configMoneroWalletCli    :: FilePath
   , configDaemonHost         :: HostName
   , configDaemonPort         :: PortNumber
+  -- , configDefaultLanguage :: Language
   } deriving (Show, Eq)
 
 instance Default Config where
@@ -143,9 +144,9 @@ instance FromJSON Config where
 
 makeWalletProcessConfig :: MonadApp m => m WalletProcessConfig
 makeWalletProcessConfig = do
-  Config{..} <- config <$> get
-  Env{envOpenWallets} <- ask
-  wallets <- liftIO $ stToIO $ readSTRef envOpenWallets
+  Env{envOpenWallets,envMutable} <- ask
+  Config{..} <- liftIO $ stToIO $ config <$> readSTRef envMutable
+  wallets    <- liftIO $ stToIO $ readSTRef envOpenWallets
   if Map.size wallets >= configConcurrentWallets
   then throwM MaxConcurrentOpenWallets
   else do
@@ -161,7 +162,9 @@ makeWalletProcessConfig = do
 
 nextAvailPort :: MonadApp m => m PortNumber
 nextAvailPort = do
-  startingPort <- configWalletStartingPort . config <$> get
+  Env{envMutable} <- ask
+  startingPort <- liftIO $ stToIO $
+    configWalletStartingPort . config <$> readSTRef envMutable
   go startingPort
   where
     go p = do
@@ -179,19 +182,21 @@ portIsAvail p = do
 
 
 -- | Update the config file every time it's changed in the UI
-configure :: MonadApp m
-          => (Config -> Config)
-          -> m ()
+configure :: (Config -> Config)
+          -> AppM ()
 configure f = do
-  Env {envWrkDir} <- ask
-  Mutable{config,rpcId} <- get
+  Env {envWrkDir,envOpenWallets,envMutable} <- ask
+  m@Mutable{config} <- liftIO $ stToIO $ readSTRef envMutable
   let config' = f config
-  put Mutable
-        { config = config'
-        , rpcId  = rpcId
-        }
-  liftIO . LBS.writeFile (envWrkDir </> "config.json")
-         $ A.encodePretty config'
+  when (configWalletsPath config' /= configWalletsPath config) $ do
+    liftIO $ do
+      ws <- stToIO $ Map.elems <$> readSTRef envOpenWallets
+      forM_ ws $ \(_ :!: hs) -> closeWallet hs
+    -- FIXME: actually move wallet files
+    -- FIXME: genuine semantic design - file paths should be independent for each wallet
+  liftIO $ do
+    stToIO $ writeSTRef envMutable $ m { config = config' }
+    LBS.writeFile (envWrkDir </> "config.json") $ A.encodePretty config'
 
 
 data Mutable = Mutable
@@ -209,14 +214,13 @@ mkMutable c = Mutable
 -- * Effect
 
 
-type AppM = LoggingT (ReaderT Env (StateT Mutable IO))
+type AppM = LoggingT (ReaderT Env IO)
 
-runAppM :: Env -> Mutable -> AppM a -> IO a
-runAppM env mut xs = evalStateT (runReaderT (runStderrLoggingT xs) env) mut
+runAppM :: Env -> AppM a -> IO a
+runAppM env xs = runReaderT (runStderrLoggingT xs) env
 
 type MonadApp m =
   ( MonadReader Env m
-  , MonadState Mutable m
   , MonadIO m
   , MonadThrow m
   , MonadCatch m

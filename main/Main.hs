@@ -67,10 +67,10 @@ main = do
   let cliOpts :: AppOpts
       cliOpts = def <> commandOpts
 
-  (env,cfg) <- digestAppOpts cliOpts
+  env <- digestAppOpts cliOpts
   print env
   handle (catchInterrupt env)
-    $ entry (fromJust $ port cliOpts) env (mkMutable cfg)
+    $ entry (fromJust $ port cliOpts) env
 
 
 catchInterrupt :: Env -> AsyncException -> IO ()
@@ -83,8 +83,8 @@ catchInterrupt env e = do
 
 
 -- | Entry point, post options parsing
-entry :: Int -> Env -> Mutable -> IO ()
-entry p env mut = do
+entry :: Int -> Env -> IO ()
+entry p env = do
   void $ forkServer "localhost" (p-1) -- FIXME only in debug mode?
   void $ forkIO $ forever $ do
     wallets <- stToIO $ readSTRef $ envOpenWallets env
@@ -95,4 +95,4 @@ entry p env mut = do
     . logStdoutDev -- FIXME: Only in verbose mode
     $ application
   where
-    application = runApplicationT (runAppM env mut) app
+    application = runApplicationT (runAppM env) app

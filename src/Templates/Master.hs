@@ -3,6 +3,7 @@
   , ScopedTypeVariables
   , FlexibleContexts
   , QuasiQuotes
+  , NamedFieldPuns
   #-}
 
 module Templates.Master where
@@ -25,11 +26,13 @@ import Path.Extended
 import qualified Data.HashMap.Strict as HM
 import Data.Monoid
 import Data.Default
+import Data.STRef
 import Data.Markup as M
 import Control.Monad.Trans
 import Control.Monad.Morph
 import Control.Monad.Reader
-import Control.Monad.State (modify, get)
+import Control.Monad.ST
+import Control.Monad.State (modify)
 
 
 -- | Render without @mainTemplate@
@@ -117,13 +120,17 @@ masterPage =
       deploy M.JavaScript Inline elm
       deploy M.JavaScript Inline modulePost
 
-      ws <- configWallets . config <$> lift get
+      c <- lift $ do
+        Env{envMutable} <- ask
+        liftIO $ stToIO $ config <$> readSTRef envMutable
+      let ws = configWallets c
 
       let mkWalletSummary :: String -> Value
           mkWalletSummary x = object ["name" .= x]
 
           ws' = LT.decodeUtf8 $ encode $ object
                   [ "wallets" .= (mkWalletSummary <$> ws)
+                  , "config" .= c
                   ]
 
           flags :: LT.Text

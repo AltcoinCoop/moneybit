@@ -52,7 +52,7 @@ instance FromJSON (WSRPC (T.Text, OpenRequest)) where
       ps <- o .:  "params"
       case ps of
         Object o' -> do
-          ps' <- o' .: "new"
+          ps' <- o' .: "open"
           w   <- o' .: "name"
           i  <- o .:  "id"
           c  <- o .:? "cancel" .!= False

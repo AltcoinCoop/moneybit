@@ -456,7 +456,7 @@ wsHandle app req resp = do
             \pendingConn -> do
               conn <- liftIO $ do
                 c <- acceptRequest pendingConn
-                sendTextData c ("Accepted conncetion" :: T.Text)
+                sendTextData c $ T.decodeUtf8 $ LBS.toStrict $ A.encode ("Accepted connection" :: T.Text)
                 pure c
 
               forever $ do

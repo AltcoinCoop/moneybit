@@ -27,6 +27,8 @@ vulnerabilities. __Use at your own risk!__
 
 - make sure `monero-wallet-cli` is in your PATH, or supply it manually
   in the `~/.moneybit/config.json` file.
+- make sure libsodium.so.18 is available for your dynamic linker - this can be
+  solved with (after install libsodium 1.0.11) `export LD_LINKER_PATH=/lib:/usr/lib:/usr/local/lib`
 
 
 #### Running the Web Server

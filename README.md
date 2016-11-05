@@ -1,6 +1,6 @@
 # MoneyBit Monero Wallet
 
-## WARNING
+## WARNING -----------------------------------------
 
 This app isn't functional, nor has it been well tested or audited for security
 vulnerabilities. __Use at your own risk!__
@@ -28,6 +28,18 @@ vulnerabilities. __Use at your own risk!__
 - make sure `monero-wallet-cli` is in your PATH, or supply it manually
   in the `~/.moneybit/config.json` file.
 
+
+#### Running the Web Server
+
+```bash
+./bin/moneybit
+```
+
+This will open a port on `http://localhost:3000` - point your browser to that URL and
+you're all set.
+
+#### Running the Electron App (requires node.js)
+
 ```bash
 npm install
 ./moneybit
@@ -35,15 +47,19 @@ npm install
 
 ### Windows
 
-in a bash terminal, make sure the folder containing the `monero-wallet-cli.exe` file
-is listed between the colon `:` characters. if it's not, add it with the following
-line:
+There's a few things you have to do before you can get MoneyBit working on Windows:
+
+1. You need to emulate POSIX. It's easiest to just [install git on Windows](https://git-scm.com/download/win). This will give you a BASH terminal (different from the normal DOS terminal), and a much-needed dependency - pthread.
+
+2. You need to have [monero-wallet-cli](https://getmonero.org) downloaded and "installed".
+   For MoneyBit, that just means you need to have `monero-wallet-cli.exe` accessible
+   to your PATH environment variable. The easiest way to do this is run something like this:
 
 ```bash
 export PATH=$PATH:<The the directory containing your executables>
 ```
 
-So, if I had my monero executables in `C:\Users\foo\Downloads\monero\`, then
+For instance, if I had my monero executables in `C:\Users\foo\Downloads\monero\`, then
 you add it like this:
 
 ```bash
@@ -59,32 +75,29 @@ $
 > "root" directory `/` - so instead of `C:\..` you have `/c/..` - hence the leftmost
 > forward slash.
 
-#### Node.js
 
-Next, you have to get node.js up and running. After you install nvm, you'll be able
-to install it with:
-
-```bash
-nvm install 6.7.0
-```
-
-after it does it's thing, load it with:
+After this, it's fairly painless - just download the [Windows release](https://github.com/moneybit/moneybit/releases/tag/v0.0.1-alpha), extract the `.zip`, open a BASH
+terminal, and invoke the executable:
 
 ```bash
-nvm use 6.7.0
+foo@DESKTOP-NHAIOA7 MINGW64 ~
+$ cd ~/Downloads/moneybit-windows-x86_64/
+
+foo@DESKTOP-NHAIOA7 MINGW64 ~/Downloads/moneybit-windows-x86_64
+$ ./moneybit.exe
 ```
 
-Next, install `bower` globally:
+You _may_ run into a couple of snags:
 
-```bash
-npm install -g bower
-```
+- if it complains `libsodium-18.dll` can't be found, make sure you either invoke
+  `moneybit.exe` from the same directory that stores them (it's included in the release),
+  or you can _try_ installing libsodium globally (but may void your warranty :x).
+- it complaints `pthread` can't be found - if so, make sure you invoke moneybit from
+  a _BASH_ terminal, not a _DOS_ terminal.
 
-### LibSodium
 
-There's luckily
 
-> _Coming Soon_ [tm]
+--------------------
 
 
 ## Building
@@ -159,19 +172,35 @@ to `http://localhost:3000`.
 - get [git and bash](https://git-scm.com/download/win)
 - get [stack](https://haskellstack.org)
 - get [nvm for windows](https://github.com/coreybutler/nvm-windows)
-- 
+- get [libsodium 1.0.11 for mingw](https://download.libsodium.org/libsodium/releases/)
+  and extract it somewhere
 
+1. Clone moneybit and its submodules:
 
+```bash
+git clone git://github.com/moneybit/moneybit
+cd moneybit/
+git submodule update --init --recursive
+```
 
+2. Fetch the bower dependencies for the front end:
 
-## TODO / Needs to be implemented
+```bash
+cd frontend/
+bower install
+cd ../ # in the main moneybit/ directory now
+```
 
-- frontend/backend encryption w/ libsodium
-    - Generate a shared private key at compile time, to ensure server
-      authenticity (poor man's SSL, but still strong)
-    - I'm steering away from a TLS layer, because that would imply a
-      certificate. I could maintain my own with letsencrypt or something
-      similar, but I want less ties to my consistency and more stability
-      even through abandonment
-- flesh out monero C bindings to Haskell (difficult/fun :D)
-- More UX stuff
+3. Build the server (may take a while)
+
+```bash
+stack build --extra-include-dirs <directory for libsodium>/include
+  --stack-yaml stack-windows.yaml --install-ghc --no-system-ghc
+```
+
+This should fetch the compiler and build the whole shebang. Do note the `<dir...>`
+portion - supply your own location for that. For instance:
+
+```bash
+$ stack build --extra-include-dirs /c/Users/athan/dev/libsodium-win64/include # ...
+```

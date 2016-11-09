@@ -51,52 +51,14 @@ npm install
 
 There's a few things you have to do before you can get MoneyBit working on Windows:
 
-1. You need to emulate POSIX. It's easiest to just [install git on Windows](https://git-scm.com/download/win). This will give you a BASH terminal (different from the normal DOS terminal), and a much-needed dependency - pthread.
+You need to have [monero-wallet-cli](https://getmonero.org) downloaded and "installed".
+For MoneyBit, that just means you need to have `monero-wallet-cli.exe` accessible
+globally. The easiest way to do this is copy `monero-wallet-cli.exe` to the same folder
+that `moneybit.exe` resides in.
 
-2. You need to have [monero-wallet-cli](https://getmonero.org) downloaded and "installed".
-   For MoneyBit, that just means you need to have `monero-wallet-cli.exe` accessible
-   to your PATH environment variable. The easiest way to do this is run something like this:
-
-```bash
-export PATH=$PATH:<The the directory containing your executables>
-```
-
-For instance, if I had my monero executables in `C:\Users\foo\Downloads\monero\`, then
-you add it like this:
-
-```bash
-foo@DESKTOP-NHAIOA7 MINGW64 ~
-$ export PATH=$PATH:/c/Users/foo/Downloads/monoero
-
-foo@DESKTOP-NAHIOA7 MINGW64 ~
-$ 
-```
-
-> __Note__: in UNIX, parent/child separation is done with a forward slash, like URLs,
-> while in normal Windows, backslashes `\` are used. Also, in unis there is _always_ a
-> "root" directory `/` - so instead of `C:\..` you have `/c/..` - hence the leftmost
-> forward slash.
-
-
-After this, it's fairly painless - just download the [Windows release](https://github.com/moneybit/moneybit/releases/tag/v0.0.1-alpha), extract the `.zip`, open a BASH
-terminal, and invoke the executable:
-
-```bash
-foo@DESKTOP-NHAIOA7 MINGW64 ~
-$ cd ~/Downloads/moneybit-windows-x86_64/
-
-foo@DESKTOP-NHAIOA7 MINGW64 ~/Downloads/moneybit-windows-x86_64
-$ ./moneybit.exe
-```
-
-You _may_ run into a couple of snags:
-
-- if it complains `libsodium-18.dll` can't be found, make sure you either invoke
-  `moneybit.exe` from the same directory that stores them (it's included in the release),
-  or you can _try_ installing libsodium globally (but may void your warranty :x).
-- it complaints `pthread` can't be found - if so, make sure you invoke moneybit from
-  a _BASH_ terminal, not a _DOS_ terminal.
-
+Download the [Windows release](https://github.com/moneybit/moneybit/releases/tag/v0.0.1-alpha) and extract it.
+Clicking `moneybit.exe` will start a console, which means you can view `http://localhost:3000` in your
+browser to use the wallet.
 
 
 --------------------

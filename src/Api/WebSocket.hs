@@ -10,7 +10,7 @@ import Api.WebSocket.RPC
 import Api
 
 import Data.Aeson as A
-import Data.Aeson.Types (typeMismatch)
+import Data.Aeson.Types (typeMismatch, Parser)
 import qualified Data.Text as T
 import Control.Applicative
 
@@ -115,10 +115,12 @@ instance ToJSON OpenProgress where
 data WSSubscribe
   = WSSubNew (WSRPC NewRequest)
   | WSSubOpen (WSRPC (T.Text, OpenRequest))
+  | Pong
 
 instance FromJSON WSSubscribe where
   parseJSON x = (WSSubNew  <$> parseJSON x)
             <|> (WSSubOpen <$> parseJSON x)
+            <|> (Pong <$ (parseJSON x :: Parser ()))
 
 
 data WSSupply

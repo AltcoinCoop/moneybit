@@ -211,6 +211,7 @@ openHandle w app req resp = do
             json r
   mid app req resp
 
+
 closeHandle :: T.Text -> MiddlewareT AppM
 closeHandle w = action $ get $ do
   lift $ do
@@ -219,7 +220,7 @@ closeHandle w = action $ get $ do
     liftIO $ do
       closeWallet hs
       stToIO $ modifySTRef envOpenWallets $ Map.delete w
-  text "closed"
+  json ("closed" :: T.Text)
 
 
 deleteHandle :: T.Text -> MiddlewareT AppM
@@ -461,6 +462,11 @@ wsHandle app req resp = do
                 sendTextData c $ T.decodeUtf8 $ LBS.toStrict $ A.encode ("Accepted connection" :: T.Text)
                 pure c
 
+              -- heartbeat
+              _ <- liftIO $ async $ forever $ do
+                     sendTextData conn $ T.decodeUtf8 $ LBS.toStrict $ A.encode ()
+                     threadDelay 1000000
+
               forever $ do
                 d <- liftIO $ receiveDataMessage conn
                 incoming <- case d of
@@ -473,6 +479,7 @@ wsHandle app req resp = do
                 case incoming of
                   WSSubscribe sub ->
                     case sub of
+                      Api.WebSocket.Pong -> pure ()
                       WSSubNew  WSRPC{..} -> do
                         let onProgress r = do
                               print r

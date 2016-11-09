@@ -45,7 +45,7 @@ packages:
     extra-dep: true
   - location:
       git: https://github.com/moneybit/hmonero.git
-      commit: e5145cefd57a6d72a4e5fdaecbf99c23c78864cc
+      commit: 91998b3a5418fd3ea5becd9a774c46582632857a
     extra-dep: true
   - location:
       git: https://github.com/athanclark/path.git

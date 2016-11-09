@@ -43,10 +43,12 @@ packages:
       git: https://github.com/athanclark/nested-routes.git
       commit: b47ec1a43ad03d51d43ae1a2f478c34b01b248cd
     extra-dep: true
-  - location:
-      git: https://github.com/moneybit/hmonero.git
-      commit: e5145cefd57a6d72a4e5fdaecbf99c23c78864cc
+  - location: '../hmonero'
     extra-dep: true
+  # - location:
+  #     git: https://github.com/moneybit/hmonero.git
+  #     commit: 91998b3a5418fd3ea5becd9a774c46582632857a
+  #   extra-dep: true
   - location:
       git: https://github.com/athanclark/path.git
       commit: a26e2dfe2410dc069dd58c6e4f45695db03c3484

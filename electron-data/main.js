@@ -8,7 +8,7 @@ const port = '18079'
 const cwd = process.cwd()
 
 
-const server = spawn(cwd + '/bin/moneybit', ['--port', port])
+const server = spawn(cwd + '/bin/linux-x86_64/moneybit', ['--port', port])
 server.on('close', () => {
     if (win) win.close()
 })
